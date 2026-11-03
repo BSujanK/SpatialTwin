@@ -10,7 +10,7 @@ MOCK = Path(__file__).resolve().parents[2] / "shared" / "mock" / "machines.json"
 
 
 def test_initial_state_matches_mock():
-    assert Simulator(seed=1).snapshot() == json.loads(MOCK.read_text())
+    assert Simulator(seed=1).snapshot() == json.loads(MOCK.read_text(encoding="utf-8"))
 
 
 def test_status_follows_health_and_floor():

@@ -11,7 +11,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from . import scheduler
+from . import copilot
 from .agent import Agent
+from .procedures import get_procedure
 from .simulator import FAULTS, Simulator, now_iso
 
 sim = Simulator(speed=float(os.getenv("SIM_SPEED", "1")))
@@ -112,6 +114,39 @@ async def inject_fault(req: InjectRequest):
     agent.on_inject(req.machine_id)
     await hub.broadcast(telemetry_message())
     return m
+
+
+class HistoryItem(BaseModel):
+    role: str
+    content: str
+
+
+class CopilotRequest(BaseModel):
+    machine_id: str
+    message: str
+    step_index: int = 0
+    history: list[HistoryItem] = []
+
+
+@app.get("/api/procedures/{fault_code}")
+def procedure(fault_code: str):
+    p = get_procedure(fault_code)
+    if p is None:
+        raise HTTPException(404, f"no procedure for {fault_code}")
+    return p
+
+
+@app.post("/api/copilot")
+def copilot_endpoint(req: CopilotRequest):
+    m = sim.get(req.machine_id)
+    if m is None:
+        raise HTTPException(404, f"unknown machine {req.machine_id}")
+    if not m["fault"]:
+        raise HTTPException(400, f"{req.machine_id} has no active fault")
+    proc = get_procedure(m["fault"]["code"])
+    if proc is None:
+        raise HTTPException(404, f"no procedure for {m['fault']['code']}")
+    return copilot.handle(req.model_dump(), m, proc, agent.on_guide, agent.on_resolve)
 
 
 @app.get("/api/events")
