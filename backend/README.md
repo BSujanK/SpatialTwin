@@ -16,7 +16,7 @@ Configuration lives in `backend/.env` (copy `.env.example`; it is gitignored and
 |---|---|
 | `QUALCOMM_API_KEY` | Enables **Qualcomm Cloud AI 100** (OpenAI-compatible `POST {QUALCOMM_ENDPOINT}/chat/completions`, Bearer auth) |
 | `QUALCOMM_ENDPOINT` | Default `https://aisuite.cirrascale.com/apis/v2` |
-| `QUALCOMM_MODEL` | Default `Llama-3.1-8B` |
+| `QUALCOMM_MODEL` | Default `Llama-3.3-70B` |
 | `ANTHROPIC_API_KEY`, `COPILOT_MODEL` | Optional second provider |
 | `SIM_SPEED` | Fault drift multiplier |
 

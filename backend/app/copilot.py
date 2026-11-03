@@ -57,7 +57,7 @@ def build_system_prompt(machine: dict, step: dict, total: int, kind: str) -> str
         f"Live sensors: {_sensors(machine)}.\n"
         f"Fault: {fault.get('code')} - {fault.get('description')}.\n"
         f"Current step {step['index'] + 1} of {total}: {step['title']}. Instruction: {step['instruction']}. "
-        f"Safety warning: {step['safety_warning'] or 'none'}.\n"
+        f"Safety warning: {step['safety_warning'] or 'none'} (the system speaks it separately; do not repeat it).\n"
         + ("The technician just entered this step: tell them what to do. " if kind in ("start", "advance")
            else "Answer the technician's question about this step only. ")
         + "Never say the step is complete or move to another step; the system controls progress."
@@ -106,8 +106,8 @@ def handle(req: dict, machine: dict, proc: dict, on_guide, on_resolve) -> dict:
     source = "llm" if text else "scripted"
     if text is None:
         text = scripted_reply(kind, machine, step, total, req["message"], finished)
-    elif entered and step["safety_warning"] and step["safety_warning"].lower()[:20] not in text.lower():
-        text += f" Safety: {step['safety_warning']}"  # code guarantees the warning is spoken
+    elif entered and step["safety_warning"] and step["safety_warning"].lower() not in text.lower():
+        text += f" Safety: {step['safety_warning']}"  # code guarantees the warning is spoken exactly once
     if finished:
         on_resolve(machine["id"])
     return {"reply": text, "step": step, "total_steps": total, "done": finished, "source": source,
