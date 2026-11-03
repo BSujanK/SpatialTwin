@@ -30,10 +30,11 @@ _Last update: 10:05 IST_
 | F3 | Claude-2 | ✅ merged | #12 |
 | F3b | Claude-2 | ✅ merged (Lead resolved main.ts conflict with F4) | #14 |
 | F4 | Astra | ✅ merged | #13 |
-| F7 | Astra | polish (scrollbars, savings, animated HUD) | |
+| F7 | Astra | ✅ merged | #16 |
 | F5 | Lead (builder) | ✅ merged | #9 |
 
 ## Blockers / decisions
+- 12:26 **CODE FREEZE.** F7 (#16) and the README/ARCHITECTURE docs (#17) merged. All 17 PRs reviewed by the Lead. Phone AR verified on a real device via a Cloudflare tunnel. Backend 51 tests, frontend 20 tests, Qualcomm live.
 - 12:07 F3b + B9 merged and verified live (camera focus + cyan part highlight; injected sensors now match the fault; Qualcomm reads 10.5 mm/s correctly). Only F7 (polish) is still open. Freeze at 12:40.
 - 11:40 All core features merged (B1–B8, F1–F6). Remaining: F3b, B9, F7 (polish), then the phone AR test. Freeze at 12:40.
 - 11:20 F6 merged (#10). Lead integration fix on main: demo controls/AR button moved into the twin panel, camera closer. Visual check at 1520px OK.
