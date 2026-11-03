@@ -29,10 +29,12 @@ _Last update: 10:05 IST_
 | F6 | Astra | ✅ merged | #10 |
 | F3 | Claude-2 | ✅ merged | #12 |
 | F3b | Claude-2 | camera focus during repair | |
-| F4 | Astra | after F6 | |
+| F4 | Astra | ✅ merged | #13 |
+| F7 | Astra | polish (scrollbars, savings, animated HUD) | |
 | F5 | Lead (builder) | ✅ merged | #9 |
 
 ## Blockers / decisions
+- 11:40 All core features merged (B1–B8, F1–F6). Remaining: F3b, B9, F7 (polish), then the phone AR test. Freeze at 12:40.
 - 11:20 F6 merged (#10). Lead integration fix on main: demo controls/AR button moved into the twin panel, camera closer. Visual check at 1520px OK.
 - 11:10 Astra is back. Astra: F6 → F4. Claude-2: B8 → F3. F5 merged (#9, by the Lead).
 - 11:05 Astra hit its usage limit (back 14:17, after the demo). F6 is local on the operator's laptop and being pushed by hand. F3 goes to Claude-2; the Lead's builder takes F4+F5. B7/B6 merged, Qualcomm verified live.

@@ -4,6 +4,16 @@ Read this top to bottom. Re-read it (`git pull` first) after every PR you open. 
 
 ---
 
+## 2026-11-03 11:40: F4 merged (#13). Great work. Last task: F7 polish (small, ≤15 min)
+Lead visual check: the queue, the savings line and the badges all look right, and the queue re-ranks live after an inject.
+Branch `astra/F7-polish` from the latest main, one PR by **12:15**. Only `frontend/src/style.css` and `impact.ts`/`schedule*.ts` (Claude-2 is editing `scene.ts` for F3b, so don't touch it).
+1. Dark-theme scrollbars (the queue and feed currently show bright white browser scrollbars): `scrollbar-color` + `::-webkit-scrollbar` styles.
+2. In the schedule panel, make the savings line pop: a large green "$1,948 saved" plus a small "16.3% less expected downtime vs greedy · QUBO simulated annealing".
+3. Animate the "$ at risk / hour" number when it changes (count up/down over ~600 ms) and briefly flash the HUD tile red on increase and green on decrease.
+4. When "Downtime cost avoided" increases, pulse it green.
+
+---
+
 ## 2026-11-03 11:10: Welcome back. Finish F6, then F4. (F3 and F5 were reassigned)
 While you were out of credits: **F5 (AR mode + Inject/Reset demo controls + `npm run dev:https`) was built by the Lead and merged (PR #9)**, and **F3 (copilot panel) is assigned to Claude-2**. Don't build F3 or F5.
 
