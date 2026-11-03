@@ -112,3 +112,18 @@ def test_logging_has_no_key(monkeypatch, caplog):
     with caplog.at_level(logging.INFO, logger="spatialtwin.llm"):
         llm.chat("s", U)
     assert "HTTP 401" in caplog.text and "super-secret-key-123" not in caplog.text
+
+
+def test_worker_runs_higher_priority_jobs_first():
+    w = llm.BackgroundWorker()
+    order, gate = [], threading.Event()
+    w.submit(lambda: (gate.wait(2), order.append("running")))
+    time.sleep(0.1)
+    w.submit(lambda: order.append("note"))                 # lower priority, older
+    w.submit(lambda: order.append("rationale"), priority=1)
+    w.submit(lambda: order.append("note2"))
+    gate.set()
+    deadline = time.time() + 2
+    while time.time() < deadline and len(order) < 4:
+        time.sleep(0.02)
+    assert order == ["running", "rationale", "note2", "note"]

@@ -71,6 +71,7 @@ INITIAL_MACHINES: list[dict] = [
         "status": "ok", "health": 91, "criticality": 4,
         "sensors": {"temperature_c": 41.2, "vibration_mm_s": 1.8, "pressure_bar": 6.1, "rpm": 8000},
         "fault": None, "downtime_cost_per_hour": 4000, "predicted_failure_min": None,
+        "control": {"mode": "nominal", "setpoints": {"speed_pct": 100, "load_pct": 100, "coolant_pct": 50}, "action_id": None},
     },
     {
         "id": "CONV-02", "name": "Main Conveyor", "type": "conveyor",
@@ -83,6 +84,7 @@ INITIAL_MACHINES: list[dict] = [
             "part": "belt", "since": "2026-11-03T09:12:00+05:30",
         },
         "downtime_cost_per_hour": 12000, "predicted_failure_min": 95,
+        "control": {"mode": "nominal", "setpoints": {"speed_pct": 100, "load_pct": 100, "coolant_pct": 50}, "action_id": None},
     },
     {
         "id": "PUMP-03", "name": "Coolant Pump", "type": "pump",
@@ -95,6 +97,7 @@ INITIAL_MACHINES: list[dict] = [
             "part": "bearing", "since": "2026-11-03T09:05:00+05:30",
         },
         "downtime_cost_per_hour": 3000, "predicted_failure_min": 18,
+        "control": {"mode": "nominal", "setpoints": {"speed_pct": 100, "load_pct": 100, "coolant_pct": 50}, "action_id": None},
     },
     {
         "id": "ROBOT-04", "name": "Welding Robot", "type": "robot_arm",
@@ -102,6 +105,7 @@ INITIAL_MACHINES: list[dict] = [
         "status": "ok", "health": 88, "criticality": 4,
         "sensors": {"temperature_c": 47.0, "vibration_mm_s": 2.1, "pressure_bar": 5.8, "rpm": 0},
         "fault": None, "downtime_cost_per_hour": 8000, "predicted_failure_min": None,
+        "control": {"mode": "nominal", "setpoints": {"speed_pct": 100, "load_pct": 100, "coolant_pct": 50}, "action_id": None},
     },
     {
         "id": "PRESS-05", "name": "Hydraulic Press", "type": "press",
@@ -114,8 +118,17 @@ INITIAL_MACHINES: list[dict] = [
             "part": "hydraulic_line", "since": "2026-11-03T09:15:00+05:30",
         },
         "downtime_cost_per_hour": 15000, "predicted_failure_min": 40,
+        "control": {"mode": "nominal", "setpoints": {"speed_pct": 100, "load_pct": 100, "coolant_pct": 50}, "action_id": None},
     },
 ]
+
+
+def _slope(hist) -> float:
+    """Least-squares slope (per sample) of a series."""
+    n = len(hist)
+    mx, my = (n - 1) / 2.0, sum(hist) / n
+    den = sum((x - mx) ** 2 for x in range(n))
+    return sum((x - mx) * (y - my) for x, y in zip(range(n), hist)) / den
 
 
 class Simulator:
@@ -126,6 +139,8 @@ class Simulator:
         self.speed = speed
         self.lock = threading.RLock()
         self.machines: dict[str, dict] = {}
+        self.sim_time = 0.0                    # simulated seconds (one per tick)
+        self._rate_mult: dict[str, float] = {}  # control: degradation-rate multiplier per machine
         self._base: dict[str, dict] = {}      # noise-free sensor means
         self._healthy: dict[str, dict] = {}   # sensor means when healthy
         self._rate: dict[str, float] = {}     # health lost per minute while faulted
@@ -136,6 +151,8 @@ class Simulator:
     def reset(self) -> None:
         with self.lock:
             self.machines = {m["id"]: copy.deepcopy(m) for m in INITIAL_MACHINES}
+            self.sim_time = 0.0
+            self._rate_mult = {}
             self._base = {i: dict(m["sensors"]) for i, m in self.machines.items()}
             self._healthy = {i: dict(m["sensors"]) for i, m in self.machines.items()}
             # Healthy means for machines that start faulted (sensible "after repair" values).
@@ -164,6 +181,7 @@ class Simulator:
         spec = FAULTS[code]
         with self.lock:
             m = self.machines[machine_id]
+            self._reset_control(machine_id)
             m["fault"] = {
                 "code": code, "description": spec["description"],
                 "part": spec["part"], "since": now_iso(),
@@ -202,6 +220,7 @@ class Simulator:
         """Repair finished: machine goes back to ok, health 95."""
         with self.lock:
             m = self.machines[machine_id]
+            self._reset_control(machine_id)
             m["fault"] = None
             m["health"] = RESOLVED_HEALTH
             m["status"] = "ok"
@@ -212,25 +231,72 @@ class Simulator:
             self._hist[machine_id].clear()
             return copy.deepcopy(m)
 
+    # ---------- control (setpoints written by the control adapter) ----------
+    def _reset_control(self, machine_id: str) -> None:
+        self.machines[machine_id]["control"] = {
+            "mode": "nominal", "setpoints": {"speed_pct": 100, "load_pct": 100, "coolant_pct": 50}, "action_id": None}
+        self._rate_mult[machine_id] = 1.0
+
+    def apply_control(self, machine_id: str, setpoints: dict, rate: float, mode: str, action_id) -> dict:
+        """Apply setpoints. `rate` scales the degradation of a faulted machine; sensors follow the setpoints."""
+        with self.lock:
+            m = self.machines[machine_id]
+            m["control"] = {"mode": mode, "setpoints": dict(setpoints), "action_id": action_id}
+            self._rate_mult[machine_id] = rate
+            self._hist[machine_id].clear()   # the old slope no longer applies
+            if m["fault"]:
+                eff = self._rate.get(machine_id, 0.0) * rate    # health points lost per minute
+                m["predicted_failure_min"] = None if eff <= 1e-9 else max(1, min(999, int(round(m["health"] / eff))))
+            return dict(m["control"]["setpoints"])
+
+    def nominal_loss_per_min(self, machine_id: str) -> float:
+        """Health points lost per minute without any mitigation."""
+        return self._rate.get(machine_id, 0.0) * self.speed   # same units as measured_loss_per_min
+
+    def measured_loss_per_min(self, machine_id: str) -> Optional[float]:
+        """Health points lost per minute, measured over the recent history (None until enough samples)."""
+        with self.lock:
+            hist = self._hist[machine_id]
+            if len(hist) < 8:
+                return None
+            return max(0.0, -_slope(hist) * 60.0)
+
+    def _display(self, machine_id: str, sensor: str, value: float) -> float:
+        """Sensor reading under the current setpoints (nominal setpoints leave the value unchanged)."""
+        sp = self.machines[machine_id]["control"]["setpoints"]
+        speed, load, cool = sp["speed_pct"] / 100.0, sp["load_pct"] / 100.0, sp["coolant_pct"]
+        if sensor == "rpm":
+            return value * speed
+        if sensor == "vibration_mm_s":
+            return value * speed
+        if sensor == "pressure_bar":
+            return value * load
+        if sensor == "temperature_c":
+            return max(20.0, value - (100 - sp["speed_pct"]) * 0.12 - (cool - 50) * 0.08)
+        return value
+
     # ---------- time ----------
     def tick(self, dt: float = 1.0) -> list[tuple[str, str, str]]:
         """Advance one step. Returns status changes as (machine_id, old, new)."""
         changes: list[tuple[str, str, str]] = []
         with self.lock:
+            self.sim_time += dt
             for mid, m in self.machines.items():
                 old = m["status"]
                 base = self._base[mid]
                 if m["fault"]:
                     spec = FAULTS[m["fault"]["code"]]
+                    mult = self._rate_mult.get(mid, 1.0)
                     for k, per_s in spec["drift"].items():
-                        base[k] = max(0.0, base[k] + per_s * dt * self.speed)
-                    drop = self._rate.get(mid, 1.0) / 60.0 * dt * self.speed
+                        base[k] = max(0.0, base[k] + per_s * dt * self.speed * mult)
+                    drop = self._rate.get(mid, 1.0) * mult / 60.0 * dt * self.speed
                     m["health"] = max(HEALTH_FLOOR, m["health"] - drop)
                 else:
                     # healthy: health wanders slightly but never leaves "ok"
                     m["health"] = min(99.0, max(76.0, m["health"] + self.rng.gauss(0, 0.05)))
                 for k in base:
-                    v = base[k] + self.rng.gauss(0, NOISE[k]) * (1.0 if base[k] else 0.0)
+                    shown = self._display(mid, k, base[k])
+                    v = shown + self.rng.gauss(0, NOISE[k]) * (1.0 if shown else 0.0)
                     m["sensors"][k] = int(round(v)) if k == "rpm" else round(max(0.0, v), 1)
                 m["status"] = status_for(m["health"])
                 self._update_prediction(mid)
