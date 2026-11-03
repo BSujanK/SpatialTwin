@@ -1,13 +1,13 @@
 import * as THREE from 'three';
 import type { Machine } from './types.ts';
 
-const statusColors = { ok: 0x55d6af, warning: 0xf0bc62, fault: 0xff6b76 };
+const statusColors = { ok: 0x3ddc97, warning: 0xffd23f, fault: 0xff3b3b };
 export function controlVisual(machine: Machine) {
   const mode = machine.control?.mode ?? 'nominal';
   const speed = Math.max(0, Math.min(100, machine.control?.setpoints.speed_pct ?? 100));
   return {
     mode,
-    color: mode === 'safe_stop' ? 0x8795a1 : mode === 'mitigated' ? 0x3b82f6 : statusColors[machine.status],
+    color: mode === 'safe_stop' ? 0x8e8a85 : mode === 'mitigated' ? 0xff5f1f : statusColors[machine.status],
     chip: mode === 'safe_stop' ? '⏸ STOPPED' : mode === 'mitigated' ? `⚙ ${Math.round(speed)}%` : null,
     speed: mode === 'safe_stop' ? 0 : speed / 100,
     pulse: mode === 'nominal' && machine.status === 'fault',
@@ -32,7 +32,7 @@ export class MachineMotion {
     for (const part of this.rotating) {
       if (!(part instanceof THREE.Mesh) || !(part.geometry instanceof THREE.CylinderGeometry)) continue;
       const geometry = part.geometry.parameters;
-      const stripe = new THREE.Mesh(new THREE.BoxGeometry(.035, geometry.height * .75, .035), new THREE.MeshStandardMaterial({ color: 0xa7e8ff, roughness: .6 }));
+      const stripe = new THREE.Mesh(new THREE.BoxGeometry(.035, geometry.height * .75, .035), new THREE.MeshStandardMaterial({ color: 0xff7a45, roughness: .6 }));
       stripe.position.x = geometry.radiusTop;
       stripe.name = 'motion-stripe';
       stripe.userData.machineId = group.name;

@@ -53,7 +53,7 @@ export class ImpactView {
     const tile = value.closest<HTMLElement>('.kpi');
     if (!tile || typeof tile.animate !== 'function') return;
     this.flashes.get(tile)?.cancel();
-    const color = increasing ? '255, 107, 118' : '85, 214, 175';
+    const color = increasing ? '255, 59, 59' : '61, 220, 151';
     const flash = tile.animate([
       { backgroundColor: `rgba(${color}, 0.2)`, boxShadow: `inset 0 0 0 1px rgba(${color}, 0.65)` },
       { backgroundColor: `rgba(${color}, 0)`, boxShadow: `inset 0 0 0 1px rgba(${color}, 0)` },
