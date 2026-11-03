@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CSS2DObject, CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
 import { createMachine } from './models';
+import { controlVisual, MachineMotion } from './control-visuals';
 import { failureCountdown } from './data';
 import { PartHighlighter } from './highlight';
 import { FOCUS_MIN_DISTANCE, FOCUS_MS, OVERVIEW_POSITION, OVERVIEW_TARGET, focusCameraPosition, stepTween, type CameraTween } from './camera-focus'; // F3b
@@ -29,7 +30,8 @@ export class FactoryScene {
   readonly renderer = new THREE.WebGLRenderer({ antialias: true });
   readonly controls: OrbitControls;
   private labels = new CSS2DRenderer();
-  private models = new Map<string, { group: THREE.Group; ring: THREE.Mesh<THREE.RingGeometry, THREE.MeshBasicMaterial>; label: HTMLButtonElement; anchor: CSS2DObject; rank: HTMLSpanElement; machine: Machine }>();
+  private models = new Map<string, { group: THREE.Group; ring: THREE.Mesh<THREE.RingGeometry, THREE.MeshBasicMaterial>; label: HTMLButtonElement; anchor: CSS2DObject; rank: HTMLSpanElement; machine: Machine; motion: MachineMotion }>();
+  private previousFrame: number | null = null;
   private highlighter = new PartHighlighter(this.twin);
   private ranks = new Map<string, number>();
   private reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -94,10 +96,14 @@ export class FactoryScene {
     this.renderer.domElement.addEventListener('pointerdown', this.pointerDown);
     this.renderer.domElement.addEventListener('pointerup', this.pointerUp);
     this.renderer.setAnimationLoop((time, frame) => { // F5: WebXR passes the XRFrame
+      const delta = this.previousFrame === null ? 0 : (time - this.previousFrame) / 1000;
+      this.previousFrame = time;
       this.onXRFrame?.(frame); // F5
       this.advanceCamera(); // F3b
       this.controls.update();
       for (const [id, item] of this.models) {
+        const visual = controlVisual(item.machine);
+        item.motion.update(item.machine, delta, this.reducedMotion);
         const flashing = (this.flashes.get(id) ?? 0) > performance.now(); // F3b: green flash when a repair completes
         if (flashing) {
           item.ring.material.color.setHex(colors.ok);
@@ -106,7 +112,8 @@ export class FactoryScene {
           continue;
         }
         if (this.flashes.delete(id)) item.ring.scale.setScalar(id === this.selected ? 1.12 : 1);
-        item.ring.material.opacity = item.machine.status === 'fault' && !this.reducedMotion ? 0.55 + Math.sin(time / 350) * 0.25 : 0.65;
+        item.ring.material.color.setHex(visual.color);
+        item.ring.material.opacity = visual.pulse && !this.reducedMotion ? 0.55 + Math.sin(time / 350) * 0.25 : 0.8;
       }
       this.highlighter.update(time, this.reducedMotion);
       this.renderer.render(this.scene, this.camera);
@@ -148,13 +155,15 @@ export class FactoryScene {
         group.add(anchor);
         const rank = document.createElement('span');
         rank.className = 'rank-badge';
-        model = { group, ring, label, anchor, rank, machine };
+        model = { group, ring, label, anchor, rank, machine, motion: new MachineMotion(group, machine.type) };
         this.models.set(machine.id, model);
         this.twin.add(group);
       }
       model.machine = machine;
-      model.ring.material.color.setHex(colors[machine.status]);
+      const visual = controlVisual(machine);
+      model.ring.material.color.setHex(visual.color);
       model.label.dataset.status = machine.status;
+      model.label.dataset.control = visual.mode;
       // Data is rendered as text, never as API-supplied HTML.
       model.label.replaceChildren();
       const title = document.createElement('strong');
@@ -168,6 +177,12 @@ export class FactoryScene {
       const sensors = document.createElement('small');
       sensors.textContent = relevantSensors(machine);
       model.label.append(heading, sensors);
+      if (visual.chip) {
+        const chip = document.createElement('span');
+        chip.className = 'machine-control-chip';
+        chip.textContent = visual.chip;
+        model.label.append(chip);
+      }
       const prediction = failureCountdown(machine.predicted_failure_min);
       if (prediction) {
         const countdown = document.createElement('span');
@@ -175,7 +190,7 @@ export class FactoryScene {
         countdown.textContent = prediction;
         model.label.append(countdown);
       }
-      model.label.setAttribute('aria-label', `${machine.name}, ${machine.status}, ${Math.round(machine.health)}% health${prediction ? `, ${prediction}` : ''}`);
+      model.label.setAttribute('aria-label', `${machine.name}, ${machine.status}, ${Math.round(machine.health)}% health${visual.chip ? `, ${visual.chip}` : ''}${prediction ? `, ${prediction}` : ''}`);
       model.rank.hidden = !this.ranks.has(machine.id);
       model.rank.textContent = String(this.ranks.get(machine.id) ?? '');
       model.label.append(model.rank);
