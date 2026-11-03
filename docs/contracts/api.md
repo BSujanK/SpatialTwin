@@ -1,4 +1,4 @@
-# API contract (v1.1): backend ⇄ frontend
+# API contract (v1.2): backend ⇄ frontend
 
 The backend is FastAPI on `http://localhost:8000`. CORS allows all origins. All JSON uses snake_case.
 Example payloads live in `shared/mock/` and must stay valid against this document.
@@ -94,6 +94,7 @@ interface CopilotResponse {
   total_steps: number;
   done: boolean;              // true when the procedure is finished
   source: "llm" | "scripted"; // which engine answered
+  engine: string;             // v1.2: human label, e.g. "Qualcomm Cloud AI 100 · Llama-3.1-8B" or "Scripted fallback"
 }
 ```
 
@@ -101,7 +102,7 @@ interface CopilotResponse {
 
 | Method | Path | Returns |
 |---|---|---|
-| GET | `/api/health` | `{ "ok": true }` |
+| GET | `/api/health` | `{ "ok": true, "ai": { "provider": "qualcomm" \| "anthropic" \| "scripted", "model": string \| null, "engine": string } }` (v1.2) |
 | GET | `/api/machines` | `Machine[]` |
 | GET | `/api/machines/{id}` | `Machine` (404 if unknown) |
 | WS | `/ws/telemetry` | every 1 s: `{ "type": "telemetry", "ts": string, "machines": Machine[], "kpis": Kpis }`. Also, immediately when an event happens: `{ "type": "event", "event": AgentEvent }` |
@@ -131,3 +132,12 @@ The backend runs this loop with no human input. Each arrow emits an `AgentEvent`
 4. **dispatch**: assign the top idle technician to the top queued machine, with a work order `WO-<n>`. That technician's status becomes `en_route`.
 5. **guide**: the first copilot "start" on that machine sets the technician to `repairing`.
 6. **resolve**: the last copilot step completes. The machine goes back to ok, the technician to idle, MTTR is recorded, and the agent dispatches the next item.
+
+## Qualcomm Cloud AI 100 (v1.2): hackathon requirement
+
+The AI brain runs on **Qualcomm Cloud AI 100** through the Qualcomm AI Inference Suite / Cirrascale Cloud AI Playground (OpenAI-compatible API).
+- Env: `QUALCOMM_API_KEY` (never committed), `QUALCOMM_ENDPOINT` (default `https://aisuite.cirrascale.com/apis/v2`), `QUALCOMM_MODEL` (default: the best available chat LLM from the model list).
+- Provider order: Qualcomm → Anthropic (only if `ANTHROPIC_API_KEY` is set) → scripted. Any error or timeout (8 s) falls through to the next provider.
+- Used in two places:
+  1. **Copilot replies** (`/api/copilot`). Step logic stays in code.
+  2. **AI root-cause analysis** in the agent loop. After each `diagnose` event, a background call (it never blocks the loop) asks the LLM for a one-sentence likely root cause and recommended action from the live sensors. It's emitted as an extra `diagnose` event with the message prefix `"Qualcomm Cloud AI 100: "`. On failure nothing is emitted.
