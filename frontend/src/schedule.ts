@@ -18,7 +18,7 @@ export class SchedulePanel {
   constructor(private host: HTMLElement, private onSelect: (id: string) => void, private onRanks: (schedule: Schedule) => void) {
     host.innerHTML = `
       <div class="schedule-heading"><div><span class="eyebrow">REPAIR PRIORITIES</span><h2>Optimized queue</h2></div><button class="quiet-button schedule-recompute" type="button">Re-optimize</button></div>
-      <p class="schedule-savings" aria-live="polite">Loading schedule…</p>
+      <p class="schedule-savings" aria-live="polite"><strong class="schedule-saved">Loading schedule…</strong><span class="schedule-comparison"></span></p>
       <p class="schedule-error" role="status" hidden></p>
       <ol class="schedule-queue" aria-label="Ranked repair queue"></ol>
       <p class="schedule-empty" hidden>All machines healthy. No repairs queued.</p>
@@ -32,9 +32,12 @@ export class SchedulePanel {
   setSchedule(schedule: Schedule) {
     if (this.disposed) return;
     this.schedule = schedule;
-    this.get('.schedule-savings').textContent = scheduleSavings(schedule);
+    this.get('.schedule-saved').textContent = `${usd.format(schedule.savings_usd)} saved`;
+    const percentage = schedule.baseline_cost > 0 ? schedule.savings_usd / schedule.baseline_cost * 100 : 0;
+    this.get('.schedule-comparison').textContent = `${percentage.toFixed(1)}% less expected downtime vs greedy · QUBO simulated annealing`;
+    this.get('.schedule-savings').setAttribute('aria-label', scheduleSavings(schedule));
     this.get('.schedule-empty').hidden = schedule.queue.length !== 0;
-    this.get('.schedule-meta').textContent = `${useMock ? 'Mock fixture · ' : ''}QUBO simulated annealing · ${new Date(schedule.generated_at).toLocaleTimeString()}`;
+    this.get('.schedule-meta').textContent = `${useMock ? 'Mock fixture · ' : ''}Updated ${new Date(schedule.generated_at).toLocaleTimeString()}`;
     this.onRanks(schedule);
     this.renderQueue();
   }

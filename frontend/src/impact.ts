@@ -9,6 +9,7 @@ export class ImpactView {
   private frames = new Map<HTMLElement, number>();
   private values = new Map<HTMLElement, number>();
   private targets = new Map<HTMLElement, number>();
+  private flashes = new Map<HTMLElement, Animation>();
   private reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   constructor(private hud: HTMLElement, private feed: HTMLElement, private onSelect: (id: string) => void) {
@@ -36,20 +37,40 @@ export class ImpactView {
     const from = this.values.get(element) ?? target;
     const start = performance.now();
     const update = (time: number) => {
-      const progress = this.reducedMotion ? 1 : Math.min(1, (time - start) / 160);
+      const progress = this.reducedMotion ? 1 : Math.min(1, (time - start) / 600);
       const value = from + (target - from) * (1 - (1 - progress) ** 3);
       element.textContent = usd.format(value);
       this.values.set(element, value);
       if (progress < 1) this.frames.set(element, requestAnimationFrame(update));
+      else this.frames.delete(element);
     };
     update(start);
   }
 
+  private flashTile(value: HTMLElement, increasing: boolean) {
+    if (this.reducedMotion) return;
+    const tile = value.closest<HTMLElement>('.kpi');
+    if (!tile || typeof tile.animate !== 'function') return;
+    this.flashes.get(tile)?.cancel();
+    const color = increasing ? '255, 107, 118' : '85, 214, 175';
+    const flash = tile.animate([
+      { backgroundColor: `rgba(${color}, 0.2)`, boxShadow: `inset 0 0 0 1px rgba(${color}, 0.65)` },
+      { backgroundColor: `rgba(${color}, 0)`, boxShadow: `inset 0 0 0 1px rgba(${color}, 0)` },
+    ], { duration: 650, easing: 'ease-out' });
+    this.flashes.set(tile, flash);
+    flash.onfinish = () => { if (this.flashes.get(tile) === flash) this.flashes.delete(tile); };
+  }
+
   updateKpis(kpis: Kpis) {
     const risk = this.get('risk-value');
+    const previousRisk = this.targets.get(risk);
+    if (previousRisk !== undefined && previousRisk !== kpis.at_risk_usd_per_hour) this.flashTile(risk, kpis.at_risk_usd_per_hour > previousRisk);
     risk.classList.toggle('at-risk', kpis.at_risk_usd_per_hour > 0);
     this.animateAmount(risk, kpis.at_risk_usd_per_hour);
-    this.animateAmount(this.get('avoided-value'), kpis.downtime_cost_avoided_usd);
+    const avoided = this.get('avoided-value');
+    const previousAvoided = this.targets.get(avoided);
+    if (previousAvoided !== undefined && kpis.downtime_cost_avoided_usd > previousAvoided) this.flashTile(avoided, false);
+    this.animateAmount(avoided, kpis.downtime_cost_avoided_usd);
     this.get('mttr-value').textContent = kpis.avg_mttr_min === null ? '—' : `${kpis.avg_mttr_min.toFixed(1)} min`;
     this.get('repairs-value').textContent = `${kpis.repairs_completed} repairs completed`;
     this.get('faults-value').textContent = String(kpis.active_faults);
@@ -124,5 +145,10 @@ export class ImpactView {
     this.get('impact-error').hidden = !message;
   }
 
-  dispose() { for (const frame of this.frames.values()) cancelAnimationFrame(frame); }
+  dispose() {
+    for (const frame of this.frames.values()) cancelAnimationFrame(frame);
+    for (const flash of this.flashes.values()) flash.cancel();
+    this.frames.clear();
+    this.flashes.clear();
+  }
 }
