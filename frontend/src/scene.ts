@@ -4,12 +4,15 @@ import { CSS2DObject, CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer
 import { createMachine } from './models';
 import { failureCountdown } from './data';
 import { PartHighlighter } from './highlight';
+import { FOCUS_MIN_DISTANCE, FOCUS_MS, OVERVIEW_POSITION, OVERVIEW_TARGET, focusCameraPosition, stepTween, type CameraTween } from './camera-focus'; // F3b
 import { placeLabel } from './label-layout';
 import type { Machine, Part, ScheduleItem, Status } from './types';
 
 let currentScene: FactoryScene | undefined;
 export function highlightPart(machineId: string, part: Part | null) { return currentScene?.highlightPart(machineId, part) ?? false; }
 export function setRankBadges(queue: ScheduleItem[]) { currentScene?.setRankBadges(queue); }
+export function focusMachine(machineId: string | null) { currentScene?.focusMachine(machineId); } // F3b
+export function flashMachine(machineId: string) { currentScene?.flashMachine(machineId); } // F3b
 
 const colors: Record<Status, number> = { ok: 0x55d6af, warning: 0xf0bc62, fault: 0xff6b76 };
 export function relevantSensors(machine: Machine): string {
@@ -32,6 +35,10 @@ export class FactoryScene {
   private reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   private resize: ResizeObserver;
   private selected: string | null = null;
+  private focused: string | null = null; // F3b
+  private tween: CameraTween | null = null; // F3b
+  private restoreMinDistance: number | null = null; // F3b
+  private flashes = new Map<string, number>(); // F3b
   private pointerStart = new THREE.Vector2();
   onXRFrame?: (frame: XRFrame | undefined) => void; // F5
 
@@ -88,8 +95,17 @@ export class FactoryScene {
     this.renderer.domElement.addEventListener('pointerup', this.pointerUp);
     this.renderer.setAnimationLoop((time, frame) => { // F5: WebXR passes the XRFrame
       this.onXRFrame?.(frame); // F5
+      this.advanceCamera(); // F3b
       this.controls.update();
-      for (const item of this.models.values()) {
+      for (const [id, item] of this.models) {
+        const flashing = (this.flashes.get(id) ?? 0) > performance.now(); // F3b: green flash when a repair completes
+        if (flashing) {
+          item.ring.material.color.setHex(colors.ok);
+          item.ring.material.opacity = 0.9;
+          item.ring.scale.setScalar(1.12 + (this.reducedMotion ? 0 : Math.abs(Math.sin(time / 120)) * 0.25));
+          continue;
+        }
+        if (this.flashes.delete(id)) item.ring.scale.setScalar(id === this.selected ? 1.12 : 1);
         item.ring.material.opacity = item.machine.status === 'fault' && !this.reducedMotion ? 0.55 + Math.sin(time / 350) * 0.25 : 0.65;
       }
       this.highlighter.update(time, this.reducedMotion);
@@ -173,6 +189,7 @@ export class FactoryScene {
     const height = this.host.clientHeight;
     const occupied: { x: number; y: number; w: number; h: number }[] = [];
     for (const model of this.models.values()) {
+      if (model.anchor.element.style.display === 'none') continue; // F3b: hidden while another machine is focused
       const point = model.anchor.getWorldPosition(new THREE.Vector3()).project(this.camera);
       if (point.z < -1 || point.z > 1) continue;
       const w = model.label.offsetWidth;
@@ -208,9 +225,46 @@ export class FactoryScene {
     }
   }
 
-  resetView() {
-    this.camera.position.set(9, 9.5, 12.5);
-    this.controls.target.set(0, 0.4, 0);
+  resetView() { this.focusMachine(null); }
+
+  // ---- F3b: camera focus during a repair ----
+  /** Smoothly bring the camera ~4.5 m from a machine (keeping the viewing angle), or back to the overview with null. */
+  focusMachine(id: string | null) {
+    const model = id ? this.models.get(id) : undefined;
+    this.focused = model ? id : null;
+    for (const [machineId, item] of this.models) {
+      item.anchor.element.style.display = this.focused && machineId !== this.focused ? 'none' : '';
+      item.label.classList.toggle('compact', machineId === this.focused);
+    }
+    const toTarget = new THREE.Vector3();
+    let toPosition: THREE.Vector3;
+    if (model) {
+      model.group.getWorldPosition(toTarget);
+      toTarget.y += 0.6;
+      toPosition = focusCameraPosition(toTarget, this.camera.position, this.controls.target);
+      this.controls.minDistance = FOCUS_MIN_DISTANCE; // allow the close-up
+      this.restoreMinDistance = null;
+    } else {
+      toTarget.copy(OVERVIEW_TARGET);
+      toPosition = OVERVIEW_POSITION.clone();
+      this.restoreMinDistance = 8; // restored when the move finishes, so the camera is not pushed out mid-move
+    }
+    this.tween = {
+      fromPosition: this.camera.position.clone(), toPosition,
+      fromTarget: this.controls.target.clone(), toTarget,
+      start: performance.now(), duration: this.reducedMotion ? 0 : FOCUS_MS,
+    };
+  }
+
+  /** Flash the machine's status ring green for ~1.5 s (repair finished). */
+  flashMachine(id: string) { this.flashes.set(id, performance.now() + 1500); }
+
+  private advanceCamera() {
+    if (!this.tween || this.renderer.xr.isPresenting) { this.tween = null; return; }
+    if (stepTween(this.tween, performance.now(), this.camera.position, this.controls.target)) {
+      this.tween = null;
+      if (this.restoreMinDistance !== null) { this.controls.minDistance = this.restoreMinDistance; this.restoreMinDistance = null; }
+    }
   }
 
   dispose() {

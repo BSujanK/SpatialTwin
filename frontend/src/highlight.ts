@@ -13,7 +13,7 @@ export class PartHighlighter {
 
   constructor(root: THREE.Group) {
     this.root = root;
-    const material = new THREE.MeshBasicMaterial({ color: 0xbafce7, depthTest: false });
+    const material = new THREE.MeshBasicMaterial({ color: 0x22d3ee, depthTest: false });
     const tip = new THREE.Mesh(new THREE.ConeGeometry(0.13, 0.26, 12), material);
     tip.rotation.z = Math.PI;
     const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.32, 8), material);
@@ -33,8 +33,8 @@ export class PartHighlighter {
     const materials = Array.isArray(target.material) ? target.material : [target.material];
     this.glowing = materials.map(material => {
       const clone = material instanceof THREE.MeshStandardMaterial ? material.clone() : new THREE.MeshStandardMaterial({ color: 0x80e9c5 });
-      clone.emissive.setHex(0x42efba);
-      clone.emissiveIntensity = 1;
+      clone.emissive.setHex(0x22d3ee); // cyan, unmistakable against the grey/green scene
+      clone.emissiveIntensity = 1.6;
       return clone;
     });
     target.material = Array.isArray(target.material) ? this.glowing : this.glowing[0];
@@ -44,13 +44,13 @@ export class PartHighlighter {
 
   update(time: number, reducedMotion = false) {
     if (!this.mesh) return;
-    for (const material of this.glowing) material.emissiveIntensity = reducedMotion ? 0.75 : 0.8 + Math.sin(time / 220) * 0.4;
+    for (const material of this.glowing) material.emissiveIntensity = reducedMotion ? 1.6 : 1.7 + Math.sin(time / 180) * 0.9;
     this.bounds.setFromObject(this.mesh);
     this.bounds.getCenter(this.point);
     this.point.y = this.bounds.max.y;
     this.root.worldToLocal(this.point);
     this.arrow.position.copy(this.point);
-    this.arrow.position.y += 0.35 + (reducedMotion ? 0 : (Math.sin(time / 220) + 1) * 0.09);
+    this.arrow.position.y += 0.8 + (reducedMotion ? 0 : (Math.sin(time / 220) + 1) * 0.12); // arrow tip stays >= 0.6 m above the part
   }
 
   clear() {

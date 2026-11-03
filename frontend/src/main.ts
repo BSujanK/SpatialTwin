@@ -1,6 +1,6 @@
 import './style.css';
 import { subscribeTelemetry, useMock } from './api';
-import { FactoryScene, highlightPart } from './scene';
+import { FactoryScene, flashMachine, focusMachine, highlightPart } from './scene';
 import { CopilotPanel } from './copilot'; // F3
 import { getHealth } from './copilot-api'; // F3
 import { aiChipText } from './copilot-logic'; // F3
@@ -46,7 +46,7 @@ let selectedId: string | null = null;
 let factory: FactoryScene | undefined;
 const rows = new Map<string, HTMLButtonElement>();
 const impact = new ImpactView(el('impact-hud'), el('agent-feed'), selectMachine);
-const copilot = new CopilotPanel(el('copilot-panel'), highlightPart); // F3
+const copilot = new CopilotPanel(el('copilot-panel'), highlightPart, { focus: focusMachine, flash: flashMachine }); // F3, F3b
 
 // F3: "AI: <provider>" chip in the HUD, from GET /api/health.
 const aiChip = document.createElement('span');

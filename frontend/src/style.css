@@ -148,3 +148,7 @@ button.event-entry:hover { background: #1b2a35; }
 .copilot-busy { margin: 0; font-size: 11px; color: #9fb2c2; }
 .copilot-error { margin: 0; padding: 8px 10px; border-radius: 8px; background: #4a1a21; color: #ffd0d4; font-size: 12px; }
 @media (max-width: 800px) { .ai-chip { position: static; justify-self: start; grid-column: 1 / -1; } }
+
+/* F3b: compact label while a machine is focused */
+.machine-label.compact { width: 130px; }
+.machine-label.compact small { display: none; }

@@ -26,6 +26,7 @@ export class CopilotPanel {
   constructor(
     private root: HTMLElement,
     private highlight: (machineId: string, part: Part | null) => boolean,
+    private view: { focus: (machineId: string | null) => void; flash: (machineId: string) => void } = { focus() {}, flash() {} }, // F3b
   ) {
     root.setAttribute('aria-label', 'Repair copilot');
     root.setAttribute('aria-live', 'polite');
@@ -38,6 +39,10 @@ export class CopilotPanel {
     if (changed) {
       this.error = null;
       this.speechCancel();
+      // F3b: leave a focused close-up when another machine is picked; resume it for a repair in progress.
+      const active = machine ? this.sessions.get(machine.id) : undefined;
+      if (this.focusedId && this.focusedId !== machine?.id) { this.view.focus(null); this.focusedId = null; }
+      if (machine && active?.started && !active.done) { this.view.focus(machine.id); this.focusedId = machine.id; }
     }
     const session = machine ? this.sessions.get(machine.id) : undefined;
     if (machine && session && isStale(session, machine)) this.sessions.delete(machine.id);
@@ -48,6 +53,7 @@ export class CopilotPanel {
   }
 
   private lastKey = '';
+  private focusedId: string | null = null; // F3b
   private keyOf() {
     const m = this.machine;
     return m ? `${m.id}|${m.status}|${m.fault?.code ?? ''}|${this.session ? 1 : 0}` : '';
@@ -74,6 +80,11 @@ export class CopilotPanel {
       const next = applyResponse(session, message, response);
       this.sessions.set(machine.id, next);
       if (this.speak) this.say(response.reply);
+      // F3b: close-up while repairing (re-focused on every step); green flash, then back to the overview when done.
+      if (response.done) {
+        this.view.flash(machine.id);
+        window.setTimeout(() => { if (this.focusedId === machine.id) { this.view.focus(null); this.focusedId = null; } }, 1500);
+      } else { this.view.focus(machine.id); this.focusedId = machine.id; }
     } catch (error) {
       this.error = error instanceof Error && error.name === 'TimeoutError'
         ? 'The copilot took too long to answer. Try again.'
