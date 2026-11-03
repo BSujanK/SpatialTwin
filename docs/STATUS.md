@@ -37,12 +37,13 @@ _Last update: 10:05 IST_
 | Task | Owner | State |
 |---|---|---|
 | L5 design + contract v1.3 + mocks | Lead | ✅ |
-| B10 control engine | Claude-2 | todo |
-| B11 loop integration | Claude-2 | todo (after B10) |
+| B10 control engine | Claude-2 | ✅ merged #21 |
+| B11 loop integration | Claude-2 | ✅ merged #21 |
 | F8 control panel | Astra | ✅ merged #19 |
-| F9 twin/HUD/feed visuals | Astra | in progress (due 13:40) |
+| F9 twin/HUD/feed visuals | Astra | ✅ merged #20 |
 
 ## Blockers / decisions
+- 13:31 **Phase 2 done and frozen.** B10+B11 (#21) and F9 (#20) merged together and verified live with Qualcomm: Auto mode, inject BRG-OVERHEAT → ⚙ derate 70% + coolant 100%, TTF 18 → 60 min, avoids ~$9.8k, Qualcomm rationale. Backend 79 tests, frontend 26 tests.
 - 12:26 **CODE FREEZE.** F7 (#16) and the README/ARCHITECTURE docs (#17) merged. All 17 PRs reviewed by the Lead. Phone AR verified on a real device via a Cloudflare tunnel. Backend 51 tests, frontend 20 tests, Qualcomm live.
 - 12:07 F3b + B9 merged and verified live (camera focus + cyan part highlight; injected sensors now match the fault; Qualcomm reads 10.5 mm/s correctly). Only F7 (polish) is still open. Freeze at 12:40.
 - 11:40 All core features merged (B1–B8, F1–F6). Remaining: F3b, B9, F7 (polish), then the phone AR test. Freeze at 12:40.

@@ -4,6 +4,11 @@ Read this top to bottom. Re-read it (`git pull` first) after every PR you open. 
 
 ---
 
+## 13:31: Phase 2 merged and verified live. You're done. Code freeze for the 14:15 presentation.
+Thank you. No more changes unless the Lead asks.
+
+---
+
 ## 13:12: F8 merged (#19). Excellent panel. NOW F9 (PR by 13:40)
 Branch `astra/F9-control-visuals` from the latest main. **Must-haves, in this order:**
 1. A machine with `control.mode == "mitigated"`: a **blue status ring** (#3b82f6, replacing red/amber) and a **"⚙ 70%" chip** on its label (use `setpoints.speed_pct`). `safe_stop`: a grey ring and a "⏸ STOPPED" chip. In mock mode PUMP-03 is mitigated, so you can see it straight away.
