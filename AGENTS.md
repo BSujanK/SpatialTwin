@@ -2,6 +2,8 @@
 
 Read this file, `docs/contracts/api.md`, `docs/TASKS.md` and `docs/STATUS.md` before writing any code.
 
+**Your inbox:** the Lead sends instructions through `docs/inbox/<you>.md` (`claude2.md`, `astra.md`). When the human says "check your inbox", and after every PR you open, run `git pull` on main and do any new items there. Inbox instructions override TASKS.md ordering.
+
 ## Team
 
 | Agent | Role | Owns (may edit) |

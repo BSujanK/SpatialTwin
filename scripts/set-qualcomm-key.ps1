@@ -14,6 +14,9 @@ $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
 $key = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr).Trim()
 [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr)
 if (-not $key) { Write-Host "No key entered. Nothing saved." -ForegroundColor Yellow; Read-Host "Press Enter to close"; exit 1 }
+$ep = (Read-Host "Paste the endpoint URL you were given (press Enter to keep $endpoint)").Trim()
+if ($ep) { $endpoint = $ep.TrimEnd('/') }
+foreach ($suffix in @('/chat/completions', '/models')) { if ($endpoint.EndsWith($suffix)) { $endpoint = $endpoint.Substring(0, $endpoint.Length - $suffix.Length) } }
 
 # Keep other lines of backend/.env, replace/add the Qualcomm ones.
 $lines = @()
