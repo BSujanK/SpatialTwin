@@ -13,7 +13,7 @@ from pydantic import BaseModel
 from . import scheduler
 from . import copilot, llm
 from .agent import Agent
-from .procedures import get_procedure
+from .procedures import PROCEDURES, get_procedure
 from .simulator import FAULTS, Simulator, now_iso
 
 sim = Simulator(speed=float(os.getenv("SIM_SPEED", "1")))
@@ -128,6 +128,11 @@ class CopilotRequest(BaseModel):
     history: list[HistoryItem] = []
 
 
+@app.get("/api/procedures")
+def procedures():
+    return [{"fault_code": p["fault_code"], "title": p["title"]} for p in PROCEDURES.values()]
+
+
 @app.get("/api/procedures/{fault_code}")
 def procedure(fault_code: str):
     p = get_procedure(fault_code)
@@ -160,10 +165,14 @@ def kpis():
 
 
 @app.post("/api/demo/reset")
-def demo_reset():
-    """Extra (not in contract): restore the initial scenario for a fresh demo run."""
+async def demo_reset():
+    """Restore the initial scenario, then push fresh telemetry and the fresh event list to clients."""
+    _bind_loop()
     sim.reset()
     agent.reset()
+    await hub.broadcast(telemetry_message())
+    for ev in agent.get_events(100):
+        await hub.broadcast({"type": "event", "event": ev})
     return {"ok": True}
 
 
