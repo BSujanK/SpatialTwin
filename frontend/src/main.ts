@@ -1,6 +1,9 @@
 import './style.css';
 import { subscribeTelemetry, useMock } from './api';
-import { FactoryScene } from './scene';
+import { FactoryScene, highlightPart } from './scene';
+import { CopilotPanel } from './copilot'; // F3
+import { getHealth } from './copilot-api'; // F3
+import { aiChipText } from './copilot-logic'; // F3
 import { ImpactView } from './impact';
 import type { Machine } from './types';
 import { setupAR } from './xr'; // F5
@@ -30,6 +33,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
         <div id="sensor-grid" class="sensor-grid"></div>
         <div id="fault-card" class="fault-card" hidden><span class="eyebrow" id="fault-code"></span><p id="fault-description"></p></div>
       </section>
+      <section id="copilot-panel" class="copilot-panel" hidden></section>
       <div class="sidebar-footer"><span id="data-description"></span><span id="last-update">Awaiting data</span></div>
     </aside>
   </main>
@@ -42,6 +46,21 @@ let selectedId: string | null = null;
 let factory: FactoryScene | undefined;
 const rows = new Map<string, HTMLButtonElement>();
 const impact = new ImpactView(el('impact-hud'), el('agent-feed'), selectMachine);
+const copilot = new CopilotPanel(el('copilot-panel'), highlightPart); // F3
+
+// F3: "AI: <provider>" chip in the HUD, from GET /api/health.
+const aiChip = document.createElement('span');
+aiChip.className = 'ai-chip';
+aiChip.textContent = 'AI: …';
+el('impact-hud').append(aiChip);
+const refreshAi = async () => {
+  const health = await getHealth();
+  aiChip.textContent = aiChipText(health?.ai ?? null);
+  aiChip.dataset.provider = health?.ai.provider ?? 'unavailable';
+  aiChip.title = health?.ai.engine ?? '';
+};
+void refreshAi();
+const aiTimer = window.setInterval(refreshAi, 20000);
 
 function selectMachine(id: string) {
   selectedId = id;
@@ -94,6 +113,7 @@ function renderDetails() {
   el('fault-card').dataset.status = machine.status;
   el('fault-code').textContent = machine.fault?.code ?? '';
   el('fault-description').textContent = machine.fault?.description ?? '';
+  copilot.setMachine(machine); // F3
 }
 
 el('reset-view').addEventListener('click', () => factory?.resetView());
@@ -145,6 +165,6 @@ const unsubscribe = subscribeTelemetry({
   },
 });
 
-const dispose = () => { unsubscribe(); impact.dispose(); factory?.dispose(); window.removeEventListener('pagehide', dispose); };
+const dispose = () => { window.clearInterval(aiTimer); unsubscribe(); impact.dispose(); factory?.dispose(); window.removeEventListener('pagehide', dispose); };
 if (import.meta.hot) import.meta.hot.dispose(dispose);
 window.addEventListener('pagehide', dispose, { once: true });

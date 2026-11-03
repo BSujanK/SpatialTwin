@@ -117,3 +117,34 @@ button.event-entry:hover { background: #1b2a35; }
 @media (max-width: 1100px) { .workspace { grid-template-columns: minmax(0, 1fr) 320px; } .sidebar { padding: 20px 16px; } .plant, .brand-caption, .brand-divider { display: none; } .scene-footer { flex-direction: column; align-items: flex-start; } .scene-toolbar { left: 18px; right: 18px; } h1 { font-size: 23px; } .impact-hud { gap: 12px; padding: 16px; } .kpi { padding-right: 10px; } .kpi > strong { font-size: 23px; } .kpi.risk-kpi > strong { font-size: 33px; } }
 @media (max-width: 800px) { .app-header { height: 66px; padding: 0 16px; } .brand { font-size: 20px; } .connection { max-width: 140px; font-size: 9px; } .impact-hud { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; } .kpi { border-right: 0; } .technicians { grid-column: 1 / -1; } #technician-chips { grid-template-columns: repeat(2, minmax(0, 1fr)); } .workspace { display: flex; flex-direction: column; height: auto; } .twin-panel { min-height: 520px; } .agent-feed { height: 250px; } .sidebar { border-left: 0; border-top: 1px solid var(--line); overflow: visible; } .machine-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); } .machine-row { padding: 8px; gap: 7px; } .machine-row strong { font-size: 11px; } .app-footer { flex-wrap: wrap; padding: 12px 16px; } .machine-label { width: 140px; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
+
+/* F3: repair copilot panel + AI chip */
+.impact-hud { position: relative; }
+.ai-chip { position: absolute; top: 8px; right: 26px; padding: 3px 9px; border: 1px solid #38434b; border-radius: 999px; background: #0f1b27; color: #9fb2c2; font-size: 10px; letter-spacing: .06em; }
+.ai-chip[data-provider="qualcomm"] { border-color: #ac9cff; color: #d3c9ff; background: #29213c99; }
+.copilot-panel { border-top: 1px solid var(--line); padding-top: 18px; margin-top: 18px; display: flex; flex-direction: column; gap: 10px; }
+.copilot-panel[hidden] { display: none; }
+.speak-toggle { font-size: 11px; color: #9fb2c2; cursor: pointer; }
+.engine-badge { align-self: flex-start; padding: 3px 9px; border-radius: 999px; font-size: 10px; letter-spacing: .04em; border: 1px solid #38434b; color: #9fb2c2; }
+.engine-badge.engine-qualcomm { border-color: #ac9cff; color: #d3c9ff; background: #29213c99; }
+.copilot-fault { font-size: 12px; color: #c9d6e0; line-height: 1.4; }
+.copilot-fault strong { color: #ffb4ba; }
+.copilot-fault[data-status="warning"] strong { color: #f0bc62; }
+.copilot-start, .copilot-next, .ask-button { padding: 10px 12px; border-radius: 8px; border: 1px solid #2dd4bf; background: #2dd4bf; color: #07121a; font: inherit; font-weight: 700; cursor: pointer; }
+.copilot-next { background: transparent; color: #2dd4bf; }
+.copilot-panel button:disabled { opacity: .45; cursor: not-allowed; }
+.step-card { border: 1px solid #2b4150; background: #0f1b27; border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 6px; }
+.step-card h3 { margin: 0; font-size: 15px; }
+.step-card p { margin: 0; font-size: 13px; line-height: 1.45; color: #c9d6e0; }
+.part-chip { align-self: flex-start; font-size: 11px; color: #80e9c5; }
+.safety-warning { margin-top: 4px; padding: 9px 10px; border-radius: 8px; border: 1px solid #ff6b76; background: #4a1a21; color: #ffd0d4; font-size: 12px; line-height: 1.4; }
+.copilot-done { padding: 12px; border-radius: 10px; background: #12342b; border: 1px solid #55d6af; color: #bff5e4; font-size: 13px; }
+.chat-log { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; max-height: 220px; overflow-y: auto; }
+.chat-log li { padding: 8px 10px; border-radius: 10px; font-size: 12px; line-height: 1.4; max-width: 92%; }
+.chat-assistant { background: #17252f; color: #d7e3ec; align-self: flex-start; }
+.chat-user { background: #1d3b45; color: #e8fbf6; align-self: flex-end; }
+.ask-form { display: flex; gap: 6px; }
+.ask-input { flex: 1; min-width: 0; padding: 9px 10px; border-radius: 8px; border: 1px solid #38434b; background: #0f1b27; color: inherit; font: inherit; font-size: 12px; }
+.copilot-busy { margin: 0; font-size: 11px; color: #9fb2c2; }
+.copilot-error { margin: 0; padding: 8px 10px; border-radius: 8px; background: #4a1a21; color: #ffd0d4; font-size: 12px; }
+@media (max-width: 800px) { .ai-chip { position: static; justify-self: start; grid-column: 1 / -1; } }
