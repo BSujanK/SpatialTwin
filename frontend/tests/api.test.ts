@@ -7,6 +7,7 @@ const machines = JSON.parse(readFileSync(new URL('../../shared/mock/machines.jso
 const kpis = JSON.parse(readFileSync(new URL('../../shared/mock/kpis.json', import.meta.url), 'utf8'));
 const eventsFixture = JSON.parse(readFileSync(new URL('../../shared/mock/events.json', import.meta.url), 'utf8'));
 const scheduleFixture = JSON.parse(readFileSync(new URL('../../shared/mock/schedule.json', import.meta.url), 'utf8'));
+const controlFixture = JSON.parse(readFileSync(new URL('../../shared/mock/control_actions.json', import.meta.url), 'utf8'));
 
 test('live stream survives malformed frames, ignores stale REST, reconnects and cleans up', async t => {
   const previousMode = process.env.VITE_USE_MOCK;
@@ -44,10 +45,12 @@ test('live stream survives malformed frames, ignores stale REST, reconnects and 
   const states: string[] = [];
   const snapshots: unknown[] = [];
   const events: unknown[] = [];
+  const controls: unknown[] = [];
   const stop = api.subscribeTelemetry({
     connection: (state: string) => states.push(state),
     machines: (value: unknown) => snapshots.push(value),
     message: (value: unknown) => events.push(value),
+    control: (value: unknown) => controls.push(value),
   });
   cleanup = stop;
   const socket = FakeSocket.instances[0];
@@ -60,6 +63,10 @@ test('live stream survives malformed frames, ignores stale REST, reconnects and 
   assert.equal(states.at(-1), 'live');
   socket.onmessage?.({ data: JSON.stringify({ type: 'event', event: { id: 6, kind: 'detect', machine_id: 'PUMP-03', ts: '2026-11-03T05:00:00Z', message: 'Fault detected' } }) });
   assert.equal(events.length, 2);
+  const control = { ...controlFixture[0], rationale: 'Async explanation arrived' };
+  socket.onmessage?.({ data: JSON.stringify({ type: 'control', action: control }) });
+  assert.deepEqual(controls, [control]);
+  assert.equal(events.length, 3);
   socket.close();
   assert.equal(states.at(-1), 'reconnecting');
   const retry = [...timers.values()].find(timer => timer.delay === 1000);
@@ -103,6 +110,13 @@ test('mock subscription starts from shared fixtures and ticks without network ac
   assert.deepEqual(await api.getEvents(), eventsFixture);
   assert.deepEqual(await api.getSchedule(), scheduleFixture);
   assert.deepEqual(await api.recomputeSchedule(), scheduleFixture);
+  const controlApi = await vite.ssrLoadModule('/src/control-api.ts');
+  assert.deepEqual(await controlApi.getControlActions(), controlFixture);
+  const originalPolicy = await controlApi.getControlPolicy();
+  assert.deepEqual(await controlApi.updateControlPolicy({ autonomy: 'auto' }), { ...originalPolicy, autonomy: 'auto' });
+  const proposed = controlFixture.find((action: { status: string }) => action.status === 'proposed');
+  assert.equal((await controlApi.commandControlAction(proposed.id, 'approve')).status, 'active');
+  assert.equal((await controlApi.commandControlAction(proposed.id, 'revert')).status, 'reverted');
   assert.deepEqual(snapshots[0], machines);
   tick?.();
   assert.equal(snapshots.length, 2);
@@ -152,20 +166,21 @@ test('impact hydration merges concurrent events, ignores stale KPIs, and refresh
   const socket = Socket.instances[0];
   socket.onopen?.();
   const latest = { ...kpis, active_faults: 4, at_risk_usd_per_hour: 34000 };
+  const nextId = Math.max(...eventsFixture.map((event: { id: number }) => event.id)) + 1;
   socket.emit({ type: 'telemetry', ts: '2026-11-03T05:00:00Z', machines, kpis: latest });
-  socket.emit({ type: 'event', event: { ...eventsFixture[0], id: 6 } });
+  socket.emit({ type: 'event', event: { ...eventsFixture[0], id: nextId } });
   pending.get('/api/events?limit=50')?.(new Response(JSON.stringify(eventsFixture)));
   pending.get('/api/kpis')?.(new Response(JSON.stringify(kpis)));
   pending.get('/api/schedule')?.(new Response(JSON.stringify(scheduleFixture)));
   await new Promise(resolve => setTimeout(resolve, 10));
-  assert.deepEqual(history.map(event => event.id), [1, 2, 3, 4, 5, 6]);
+  assert.deepEqual(history.map(event => event.id), [...eventsFixture.map((event: { id: number }) => event.id), nextId].sort((a, b) => a - b));
   assert.deepEqual(readings, [latest]);
-  socket.emit({ type: 'event', event: { ...eventsFixture[0], id: 6 } });
-  assert.equal(history.length, 6);
+  socket.emit({ type: 'event', event: { ...eventsFixture[0], id: nextId } });
+  assert.equal(history.length, eventsFixture.length + 1);
   assert.deepEqual(schedules, [scheduleFixture]);
   const scheduleRequests = () => fetchMock.mock.calls.filter(call => call.arguments[0] === '/api/schedule').length;
   const before = scheduleRequests();
-  socket.emit({ type: 'event', event: { ...eventsFixture[0], id: 7, kind: 'schedule', machine_id: null } });
+  socket.emit({ type: 'event', event: { ...eventsFixture[0], id: nextId + 1, kind: 'schedule', machine_id: null } });
   assert.equal(scheduleRequests(), before + 1, 'every schedule event refreshes the queue');
   const updated = { ...scheduleFixture, queue: [] };
   pending.get('/api/schedule')?.(new Response(JSON.stringify(updated)));

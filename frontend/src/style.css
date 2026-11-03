@@ -178,3 +178,40 @@ button.event-entry:hover { background: #1b2a35; }
 /* F3b: compact label while a machine is focused */
 .machine-label.compact { width: 130px; }
 .machine-label.compact small { display: none; }
+
+/* F8: autonomous control, contained within the existing sidebar. */
+.sidebar-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-bottom: 16px; }
+.sidebar-tabs button { padding: 10px 5px; border: 1px solid #344855; border-radius: 5px; background: #14232e; font-size: 11px; }
+.sidebar-tabs button[aria-selected=true] { border-color: #74b8fa; color: #c6e5ff; background: #213a51; }
+.control-panel { border-bottom: 1px solid var(--line); margin-bottom: 20px; padding-bottom: 16px; }
+.control-heading, .control-card-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.control-heading h2 { font-size: 18px; margin-top: 0; }
+.control-source, .control-envelope, .control-meta { display: block; font-size: 9px; color: #99aebc; line-height: 1.5; }
+.control-source { margin: 7px 0 14px; }
+.autonomy-levels { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; padding: 0; margin: 0; border: 0; }
+.autonomy-levels legend { font-size: 10px; color: #afc5d3; margin-bottom: 7px; }
+.autonomy-levels button { border: 1px solid #3e5464; border-radius: 4px; background: #192b38; padding: 9px 3px; font-size: 11px; }
+.autonomy-levels button[aria-pressed=true] { background: #294c6b; color: #d4edff; border-color: #75beff; }
+.autonomy-description { font-size: 11px; line-height: 1.5; color: #bacdd9; margin: 9px 0 6px; }
+.control-notice, .control-error { font-size: 11px; line-height: 1.5; margin-top: 9px; }
+.control-notice { color: #99caff; }
+.control-error, .control-interlock { color: var(--warning); }
+.control-card { border: 1px solid #344b5b; border-radius: 6px; background: #14232e; padding: 12px; margin-top: 12px; }
+.control-card[data-status=active] { border-left: 3px solid #65b3ff; }
+.control-card[data-status=proposed] { border-left: 3px solid var(--warning); }
+.control-machine { padding: 0; border: 0; background: transparent; text-align: left; font-size: 12px; color: #c7e5ff; font-weight: 600; }
+.control-status { font-size: 9px; text-transform: uppercase; letter-spacing: .5px; color: #a9cce8; }
+.control-card h3 { font-size: 13px; line-height: 1.5; font-weight: 600; margin: 8px 0 5px; }
+.control-ttf { margin-top: 12px; font-size: 22px; font-weight: 600; color: #a9d8ff; font-variant-numeric: tabular-nums; }
+.control-ttf small { display: block; font-size: 8px; letter-spacing: 1px; color: #9cb8cb; margin-bottom: 3px; }
+.control-ttf-bar { height: 5px; background: #66b7ff; border-radius: 3px; margin: 7px 0 10px; overflow: hidden; }
+.control-ttf-bar span { display: block; height: 100%; background: #fa9ca4; }
+.control-tradeoff { color: #a1e9d2; font-size: 11px; line-height: 1.6; margin: 8px 0; }
+.control-reason, .control-rationale { font-size: 11px; color: #c2d0da; line-height: 1.6; margin-bottom: 9px; overflow-wrap: anywhere; }
+.control-card .engine-badge { display: inline-block; font-size: 9px; color: #c4b7ff; margin-bottom: 6px; max-width: 100%; overflow-wrap: anywhere; }
+.control-card-buttons { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
+.control-card-buttons [data-command=approve] { border-color: #65b3ff; color: #c3e2ff; }
+.control-interlock { width: 100%; font-size: 10px; line-height: 1.5; }
+.control-empty { font-size: 11px; color: var(--muted); padding: 14px 0; }
+.control-panel button:disabled { opacity: .5; cursor: not-allowed; }
+.control-stale .control-envelope::after { content: ' · disconnected'; color: var(--warning); }

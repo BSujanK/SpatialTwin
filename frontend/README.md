@@ -1,5 +1,9 @@
 # SpatialTwin frontend
 
+Phase 2 adds an **Autonomous control** sidebar tab beside Repair priorities. Advise recommends, Approve waits for the operator, and Auto allows backend execution within its safety envelope. The selected mode changes only after the policy PUT is acknowledged. Action cards show backend setpoints, time-to-failure before/after, throughput cost, expected loss avoided, and the async rationale/engine when available. Proposed actions offer Approve/Reject; active actions offer Revert. Technician interlocks disable approval while repairing; the live backend remains authoritative for all safety checks. Disconnects disable writes, and failed requests keep the previous confirmed state with a refresh/retry message.
+
+In mock mode, `control_actions.json` and `control_policy.json` seed an in-memory interaction preview: mode and action buttons round-trip without network access. Reloading resets that preview. It does not implement the backend control engine or send hardware commands. Live mode uses `/api/control/*` and `control` websocket frames; history is refreshed after reconnect and buffered frames override older snapshots. The Refresh button also reloads policy changes made by another operator. F9 adds the control effects to twin/HUD/feed visuals.
+
 The repair schedule appears at the top of the sidebar. Each ranked item shows its machine, reason, repair minutes and technician; clicking selects the machine and its numbered scene badge. Savings use `savings_usd / baseline_cost` (zero when the baseline is zero). Re-optimize calls `POST /api/schedule/recompute`; mock mode reloads the shared schedule fixture. The subscription refreshes the queue on every `schedule`/`resolve` event and after websocket reconnects. Failed recomputations retain the last known queue and show a retry message.
 
 Vite + TypeScript + three.js, with no UI framework. Requires Node.js 22.12+ (tested on Node 24).

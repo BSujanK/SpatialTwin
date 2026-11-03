@@ -3,7 +3,7 @@ import kpisFixture from '../../shared/mock/kpis.json';
 import eventsFixture from '../../shared/mock/events.json';
 import scheduleFixture from '../../shared/mock/schedule.json';
 import { jitterMachines, mergeEvents, websocketUrl } from './data';
-import type { AgentEvent, Kpis, Machine, Schedule, StreamMessage } from './types';
+import type { AgentEvent, ControlAction, Kpis, Machine, Schedule, StreamMessage } from './types';
 
 export const useMock = import.meta.env.VITE_USE_MOCK === 'true';
 export type ConnectionState = 'connecting' | 'live' | 'reconnecting' | 'mock';
@@ -38,6 +38,7 @@ export function subscribeTelemetry(handlers: {
   kpis?: (kpis: Kpis) => void;
   events?: (events: AgentEvent[]) => void;
   schedule?: (schedule: Schedule) => void;
+  control?: (action: ControlAction) => void;
   impactError?: (message: string | null) => void;
 }): () => void {
   if (useMock) {
@@ -124,7 +125,7 @@ export function subscribeTelemetry(handlers: {
       if (stopped || socket !== active) return;
       try {
         const message = JSON.parse(data) as StreamMessage;
-        if (message.type !== 'telemetry' && message.type !== 'event') return;
+        if (message.type !== 'telemetry' && message.type !== 'event' && message.type !== 'control') return;
         if (message.type === 'telemetry') {
           if (!Array.isArray(message.machines) || typeof message.ts !== 'string') return;
           receivedTelemetry = true;
@@ -134,6 +135,9 @@ export function subscribeTelemetry(handlers: {
           handlers.machines(message.machines, message.ts);
           handlers.kpis?.(message.kpis);
           armWatchdog();
+        } else if (message.type === 'control') {
+          if (!message.action || typeof message.action.id !== 'string') return;
+          handlers.control?.(message.action);
         } else {
           const event = message.event;
           if (!event || !Number.isInteger(event.id) || typeof event.message !== 'string') return;
