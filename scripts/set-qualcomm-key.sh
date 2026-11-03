@@ -11,6 +11,8 @@ echo "=== SpatialTwin: Qualcomm Cloud AI 100 API key ==="
 read -r -s -p "Paste your Cloud AI Playground API key (input is hidden), then press Enter: " KEY; echo
 KEY="$(echo -n "$KEY" | tr -d '[:space:]')"
 [ -z "$KEY" ] && { echo "No key entered. Nothing saved."; exit 1; }
+read -r -p "Paste the endpoint URL you were given (Enter keeps $ENDPOINT): " EP
+if [ -n "$EP" ]; then ENDPOINT="${EP%/}"; ENDPOINT="${ENDPOINT%/chat/completions}"; ENDPOINT="${ENDPOINT%/models}"; fi
 
 touch "$ENV_FILE"
 grep -vE '^\s*QUALCOMM_(API_KEY|ENDPOINT)\s*=' "$ENV_FILE" > "$ENV_FILE.tmp" || true
