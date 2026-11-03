@@ -218,13 +218,16 @@ class BackgroundWorker:
 
     def __init__(self, max_age: float = 60.0):
         self.max_age = max_age
-        self._jobs: list[tuple[float, object]] = []
+        self._jobs: list[tuple[float, object, int, int]] = []
+        self._seq = 0
         self._cv = threading.Condition()
         self._thread: Optional[threading.Thread] = None
 
-    def submit(self, fn) -> None:
+    def submit(self, fn, priority: int = 0) -> None:
+        """Queue a job. Higher priority runs first (e.g. operator-facing rationales before root-cause notes)."""
         with self._cv:
-            self._jobs.append((time.time(), fn))
+            self._seq += 1
+            self._jobs.append((time.time(), fn, priority, self._seq))
             if self._thread is None or not self._thread.is_alive():
                 self._thread = threading.Thread(target=self._run, daemon=True)
                 self._thread.start()
@@ -236,7 +239,8 @@ class BackgroundWorker:
                 if not self._cv.wait_for(lambda: self._jobs, timeout=30):
                     self._thread = None
                     return
-                ts, fn = self._jobs.pop()  # newest first
+                best = max(range(len(self._jobs)), key=lambda i: (self._jobs[i][2], self._jobs[i][3]))
+                ts, fn, _, _ = self._jobs.pop(best)  # highest priority first, then newest
                 stale = time.time() - ts > self.max_age
                 if stale:
                     log.info("dropping stale background job")

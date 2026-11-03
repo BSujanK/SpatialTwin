@@ -28,7 +28,7 @@ def test_inject_runs_loop_fast():
     a.on_inject("CNC-01")
     assert time.perf_counter() - t0 < 1.0
     new = a.get_events(100)[n0:]
-    assert [e["kind"] for e in new][:4] == ["detect", "diagnose", "schedule", "dispatch"]
+    assert [e["kind"] for e in new if e["kind"] != "mitigate"][:4] == ["detect", "diagnose", "schedule", "dispatch"]  # v1.3 may add a mitigate event after diagnose
     assert [e["id"] for e in a.get_events(100)] == sorted(e["id"] for e in a.get_events(100))
     k = a.kpis()
     assert k["active_faults"] == 4 and k["at_risk_usd_per_hour"] == 34000
@@ -76,11 +76,12 @@ def test_endpoints_and_websocket_events():
                 got.append(msg["event"]["kind"])
             if "dispatch" in got:
                 break
-    assert got[:4] == ["detect", "diagnose", "schedule", "dispatch"]
+    assert [k for k in got if k != "mitigate"][:4] == ["detect", "diagnose", "schedule", "dispatch"]  # mitigate (v1.3) sits between diagnose and schedule
     ev = c.get("/api/events?limit=5").json()
     assert len(ev) == 5 and set(ev[0]) == {"id", "ts", "kind", "machine_id", "message"}
     k = c.get("/api/kpis").json()
     assert k["active_faults"] == 4
     assert set(k) == {"active_faults", "at_risk_usd_per_hour", "repairs_completed", "avg_mttr_min",
-                      "downtime_cost_avoided_usd", "technicians"}
+                      "downtime_cost_avoided_usd", "technicians", "mitigations_active", "failures_prevented",
+                      "ttf_extended_min", "throughput_cost_usd_per_hour"}
     g_sim.reset(); g_agent.reset()

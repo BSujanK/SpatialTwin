@@ -9,11 +9,13 @@ from typing import Optional
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
+from typing import Literal
 
 from . import scheduler
 from . import copilot, llm
 from .agent import Agent
+from .control import ControlConflict, ControlNotFound, validate_policy
 from .procedures import PROCEDURES, get_procedure
 from .simulator import FAULTS, Simulator, now_iso
 
@@ -60,6 +62,9 @@ def _bind_loop() -> None:
     agent.listeners.clear()
     agent.add_listener(lambda ev: loop.call_soon_threadsafe(
         lambda: loop.create_task(hub.broadcast({"type": "event", "event": ev}))))
+    agent.control.listeners.clear()   # v1.3: every action create/change is pushed as a `control` message
+    agent.control.listeners.append(lambda a: loop.call_soon_threadsafe(
+        lambda: loop.create_task(hub.broadcast({"type": "control", "action": a}))))
 
 
 async def _loop() -> None:
@@ -156,6 +161,59 @@ def copilot_endpoint(req: CopilotRequest):
     if proc is None:
         raise HTTPException(404, f"no procedure for {m['fault']['code']}")
     return copilot.handle(req.model_dump(), m, proc, agent.on_guide, agent.on_resolve)
+
+
+class PolicyUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    autonomy: Optional[Literal["advise", "approve", "auto"]] = None
+    enabled: Optional[bool] = None
+    max_derate_pct: Optional[int] = Field(default=None, ge=0, le=60)
+    allow_controlled_stop: Optional[bool] = None
+
+
+def _control_call(fn, *args):
+    try:
+        return fn(*args)
+    except ControlNotFound:
+        raise HTTPException(404, "unknown control action")
+    except ControlConflict as e:
+        raise HTTPException(409, str(e))
+
+
+@app.get("/api/control/actions")
+def control_actions(limit: int = 50):
+    return agent.control.list(limit)
+
+
+@app.post("/api/control/actions/{action_id}/approve")
+async def control_approve(action_id: str):
+    _bind_loop()
+    return _control_call(agent.control_approve, action_id)
+
+
+@app.post("/api/control/actions/{action_id}/reject")
+async def control_reject(action_id: str):
+    _bind_loop()
+    return _control_call(agent.control_reject, action_id)
+
+
+@app.post("/api/control/actions/{action_id}/revert")
+async def control_revert(action_id: str):
+    _bind_loop()
+    return _control_call(agent.control_revert, action_id)
+
+
+@app.get("/api/control/policy")
+def control_policy():
+    return agent.control.policy
+
+
+@app.put("/api/control/policy")
+def control_policy_update(update: PolicyUpdate):
+    try:
+        return agent.control.update_policy(update.model_dump(exclude_none=True))
+    except ValueError as e:
+        raise HTTPException(422, str(e))
 
 
 @app.get("/api/events")

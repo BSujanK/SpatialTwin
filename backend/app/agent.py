@@ -10,6 +10,7 @@ import time
 from typing import Callable, Optional
 
 from . import llm, scheduler
+from .control import ControlManager, SimulatedAdapter
 from .simulator import Simulator, now_iso
 
 SEVERITY = {"ok": 0, "warning": 1, "fault": 2}
@@ -21,6 +22,7 @@ class Agent:
         self.sim = sim
         self.lock = threading.RLock()
         self.listeners: list[Callable[[dict], None]] = []
+        self.control = ControlManager(sim, SimulatedAdapter(sim), self._is_locked)
         self.reset()
 
     # ---------- setup ----------
@@ -28,6 +30,7 @@ class Agent:
         """Clear the log and KPIs, then register faults that already exist (no dispatch yet)."""
         with self.lock:
             self._gen = getattr(self, "_gen", 0) + 1
+            self.control.reset()
             self.events: list[dict] = []
             self._next_id = 1
             self._wo = 1000
@@ -158,24 +161,27 @@ class Agent:
     def on_tick(self, changes: list) -> None:
         """Called after each simulator tick with status changes (machine_id, old, new)."""
         worse = [(i, o, n) for i, o, n in changes if SEVERITY[n] > SEVERITY[o]]
-        if not worse:
-            return
         with self.lock:
-            for mid, old, _ in worse:
-                m = self.sim.get(mid)
-                self._detected_at.setdefault(mid, time.time())
-                self._detect(m, old)
-                self._diagnose(m)
-            self._reschedule()
-            self._dispatch()
+            if worse:
+                for mid, old, _ in worse:
+                    m = self.sim.get(mid)
+                    self._detected_at.setdefault(mid, time.time())
+                    self._detect(m, old)
+                    self._diagnose(m)
+                    self._mitigate(m)
+                self._reschedule()
+                self._dispatch()
+            self._control_tick()
 
     def on_inject(self, machine_id: str) -> None:
         """A fault was forced on machine_id (demo)."""
         with self.lock:
+            self.control.clear_for_new_fault(machine_id)
             m = self.sim.get(machine_id)
             self._detected_at[machine_id] = time.time()
             self._detect(m, None)
             self._diagnose(m)
+            self._mitigate(m, force=True)
             self._reschedule()
             self._dispatch()
 
@@ -231,11 +237,106 @@ class Agent:
             tail = f" MTTR {mttr:.1f} min." if mttr is not None else ""
             self._emit("resolve", machine_id,
                        f"{m['name']} repaired and back to OK (health {int(m['health'])}).{tail}")
+            if any(a["status"] == "completed" for a in self.control.restore(machine_id)):
+                self._emit("restore", machine_id, f"Restored {m['name']} to nominal setpoints (100% speed, 100% load).")
             self._reschedule()
             self._dispatch()
 
     def _tech_for(self, machine_id: str) -> Optional[str]:
         return next((n for n, t in self.tech.items() if t["machine_id"] == machine_id), None)
+
+    # ---------- autonomous control (B10/B11) ----------
+    # The deterministic engine in control.py chooses every setpoint. The LLM below only explains an action.
+    def _is_locked(self, machine_id: str) -> bool:
+        """Lockout/tagout interlock: no control action while a technician is repairing the machine."""
+        return any(t["machine_id"] == machine_id and t["status"] == "repairing" for t in self.tech.values())
+
+    def _wait_plus_repair(self, machine_id: str) -> float:
+        """Minutes until the repair of this machine would be complete, from the current schedule."""
+        queue = self.schedule["queue"]
+        item = next((q for q in queue if q["machine_id"] == machine_id), None)
+        if item is None:
+            return 30.0
+        tech = item["technician"]
+        wait = sum(q["est_repair_min"] for q in queue if q["technician"] == tech and q["rank"] < item["rank"])
+        st = self.tech[tech]
+        if st["status"] != "idle" and st["machine_id"] not in (None, machine_id):
+            busy = next((q["est_repair_min"] for q in queue if q["machine_id"] == st["machine_id"]), 25)
+            wait += busy                                   # technician is still busy with another job
+        return float(wait + item["est_repair_min"])
+
+    def _describe(self, a: dict) -> str:
+        after = "stopped" if a["ttf_after_min"] is None else f"{a['ttf_after_min']} min"
+        return (f"{a['label']}: fails in {a['ttf_before_min']} → {after}, "
+                f"-${a['throughput_cost_usd_per_hour']:,.0f}/h throughput, avoids ${a['expected_loss_avoided_usd']:,.0f} expected loss.")
+
+    def _mitigate(self, m: dict, force: bool = False) -> None:
+        """After diagnose, before schedule: ask the engine for a mitigation (never the LLM) and log it."""
+        if not self.control.policy["enabled"]:
+            return
+        self.schedule = scheduler.compute_schedule(self.sim.snapshot())   # provisional, to know the wait
+        action = self.control.propose(m, self._wait_plus_repair(m["id"]), force=force)
+        if action is None:
+            return
+        prefix = {"active": "Auto-mitigation",
+                  "proposed": "Recommended mitigation (advise mode, not applied)" if action["autonomy"] == "advise"
+                  else "Proposed mitigation (needs operator approval)"}.get(action["status"], "Mitigation")
+        self._emit("mitigate", m["id"], f"{prefix}: {self._describe(action)}")
+        self._rationale_async(action)
+
+    def _control_tick(self) -> None:
+        for esc in self.control.watchdog(self.sim.get, self._wait_plus_repair):
+            self._emit("escalate", esc["machine_id"], f"Escalated: {self._describe(esc)} Health loss had not improved enough.")
+            self._rationale_async(esc)
+            self._reschedule()
+
+    def _rationale_async(self, action: dict) -> None:
+        if not llm.available():
+            return
+        gen, aid = self._gen, action["id"]
+        facts = dict(action)
+        llm.worker.submit(lambda: self._rationale(facts, aid, gen), priority=1)  # ahead of root-cause notes
+
+    def _rationale(self, a: dict, aid: str, gen: int) -> None:
+        system = ("You explain automatic equipment protection actions to a plant operator. Write ONE sentence "
+                  "(max 35 words), plain language, no markdown. Explain why this action helps and what it costs. "
+                  "Use only the numbers given. Do not recommend different settings.")
+        after = "n/a (machine stopped)" if a["ttf_after_min"] is None else f"{a['ttf_after_min']} min"
+        user = (f"Machine {a['machine_id']}. Action: {a['label']}. Reason: {a['reason']} Time to failure before "
+                f"{a['ttf_before_min']} min, after {after}. Throughput cost ${a['throughput_cost_usd_per_hour']:.0f} per hour. "
+                f"Expected loss avoided ${a['expected_loss_avoided_usd']:.0f}.")
+        try:
+            res = llm.chat(system, [{"role": "user", "content": user}], max_tokens=90, background=True)
+        except Exception:
+            return
+        if not res or gen != self._gen:
+            return
+        text, engine = res
+        try:
+            self.control.set_rationale(aid, " ".join(text.split()), engine)   # text only; numbers never change
+        except Exception:
+            pass
+
+    def control_approve(self, action_id: str) -> dict:
+        with self.lock:
+            a = self.control.approve(action_id)
+            self._emit("mitigate", a["machine_id"], f"Operator approved: {self._describe(a)}")
+            self._reschedule()
+            self._dispatch()
+            return a
+
+    def control_reject(self, action_id: str) -> dict:
+        with self.lock:
+            a = self.control.reject(action_id)
+            self._emit("mitigate", a["machine_id"], f"Operator rejected: {a['label']}.")
+            return a
+
+    def control_revert(self, action_id: str) -> dict:
+        with self.lock:
+            a = self.control.revert(action_id)
+            self._emit("restore", a["machine_id"], f"Operator reverted: {a['label']}. Previous setpoints restored.")
+            self._reschedule()
+            return a
 
     # ---------- KPIs ----------
     def kpis(self) -> dict:
@@ -251,4 +352,5 @@ class Agent:
                     {"name": n, "status": t["status"], "machine_id": t["machine_id"]}
                     for n, t in self.tech.items()
                 ],
+                **self.control.kpis(),
             }

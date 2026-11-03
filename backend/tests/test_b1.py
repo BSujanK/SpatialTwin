@@ -10,7 +10,15 @@ MOCK = Path(__file__).resolve().parents[2] / "shared" / "mock" / "machines.json"
 
 
 def test_initial_state_matches_mock():
-    assert Simulator(seed=1).snapshot() == json.loads(MOCK.read_text(encoding="utf-8"))
+    """Every field equals shared/mock/machines.json, except `control` (v1.3): the backend starts all machines
+    nominal, whereas the mock illustrates PUMP-03 already mitigated."""
+    mock = json.loads(MOCK.read_text(encoding="utf-8"))
+    mine = Simulator(seed=1).snapshot()
+    nominal = {"mode": "nominal", "setpoints": {"speed_pct": 100, "load_pct": 100, "coolant_pct": 50}, "action_id": None}
+    assert [m.pop("control") for m in mine] == [nominal] * 5
+    for m in mock:
+        assert set(m.pop("control")) == {"mode", "setpoints", "action_id"}
+    assert mine == mock
 
 
 def test_status_follows_health_and_floor():
