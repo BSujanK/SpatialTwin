@@ -37,20 +37,20 @@ def test_openai_compatible_request_shape(monkeypatch):
     enable(monkeypatch)
     mock("Hello <think>hmm</think>technician.")
     out = llm.chat("sys", [{"role": "user", "content": "hi"}], max_tokens=50)
-    assert out == ("Hello technician.", "Qualcomm Cloud AI 100 · Llama-3.1-8B")
+    assert out == ("Hello technician.", "Qualcomm Cloud AI 100 · Llama-3.3-70B")
     req = calls[0]
     assert str(req.url) == "https://qc.example/apis/v2/chat/completions"
     assert req.headers["authorization"] == "Bearer secret-test-key"
     body = json.loads(req.content)
-    assert body["model"] == "Llama-3.1-8B" and body["max_tokens"] == 50
+    assert body["model"] == "Llama-3.3-70B" and body["max_tokens"] == 50
     assert body["messages"][0] == {"role": "system", "content": "sys"}
 
 
 def test_model_override_and_health(monkeypatch):
     enable(monkeypatch)
-    monkeypatch.setenv("QUALCOMM_MODEL", "Llama-3.3-70B")
+    monkeypatch.setenv("QUALCOMM_MODEL", "Llama-3.1-8B")
     ai = TestClient(app).get("/api/health").json()["ai"]
-    assert ai == {"provider": "qualcomm", "model": "Llama-3.3-70B", "engine": "Qualcomm Cloud AI 100 · Llama-3.3-70B"}
+    assert ai == {"provider": "qualcomm", "model": "Llama-3.1-8B", "engine": "Qualcomm Cloud AI 100 · Llama-3.1-8B"}
 
 
 def test_copilot_uses_qualcomm(monkeypatch):
@@ -58,7 +58,7 @@ def test_copilot_uses_qualcomm(monkeypatch):
     mock("Switch the isolator off and tag it out.")
     g_sim.reset(); g_agent.reset()
     r = start(TestClient(app))
-    assert r["source"] == "llm" and r["engine"] == "Qualcomm Cloud AI 100 · Llama-3.1-8B"
+    assert r["source"] == "llm" and r["engine"] == "Qualcomm Cloud AI 100 · Llama-3.3-70B"
     assert r["step"]["safety_warning"] in r["reply"]  # code appends the warning
     g_sim.reset(); g_agent.reset()
 

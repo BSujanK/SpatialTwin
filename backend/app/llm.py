@@ -25,7 +25,7 @@ except Exception:  # python-dotenv missing: real env vars still work
     pass
 
 DEFAULT_ENDPOINT = "https://aisuite.cirrascale.com/apis/v2"
-DEFAULT_QUALCOMM_MODEL = "Llama-3.1-8B"
+DEFAULT_QUALCOMM_MODEL = "Llama-3.3-70B"
 DEFAULT_ANTHROPIC_MODEL = "claude-haiku-5-5"
 TIMEOUT_S = 8.0
 COOLDOWN_S = 30.0  # after a provider fails, skip it for a while so the demo isn't slowed by timeouts
