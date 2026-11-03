@@ -2,7 +2,14 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CSS2DObject, CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
 import { createMachine } from './models';
-import type { Machine, Status } from './types';
+import { failureCountdown } from './data';
+import { PartHighlighter } from './highlight';
+import { placeLabel } from './label-layout';
+import type { Machine, Part, ScheduleItem, Status } from './types';
+
+let currentScene: FactoryScene | undefined;
+export function highlightPart(machineId: string, part: Part | null) { return currentScene?.highlightPart(machineId, part) ?? false; }
+export function setRankBadges(queue: ScheduleItem[]) { currentScene?.setRankBadges(queue); }
 
 const colors: Record<Status, number> = { ok: 0x55d6af, warning: 0xf0bc62, fault: 0xff6b76 };
 export function relevantSensors(machine: Machine): string {
@@ -19,12 +26,16 @@ export class FactoryScene {
   readonly renderer = new THREE.WebGLRenderer({ antialias: true });
   readonly controls: OrbitControls;
   private labels = new CSS2DRenderer();
-  private models = new Map<string, { group: THREE.Group; ring: THREE.Mesh<THREE.RingGeometry, THREE.MeshBasicMaterial>; label: HTMLButtonElement; machine: Machine }>();
+  private models = new Map<string, { group: THREE.Group; ring: THREE.Mesh<THREE.RingGeometry, THREE.MeshBasicMaterial>; label: HTMLButtonElement; anchor: CSS2DObject; rank: HTMLSpanElement; machine: Machine }>();
+  private highlighter = new PartHighlighter(this.twin);
+  private ranks = new Map<string, number>();
+  private reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   private resize: ResizeObserver;
   private selected: string | null = null;
   private pointerStart = new THREE.Vector2();
 
   constructor(private host: HTMLElement, private onSelect: (id: string) => void) {
+    currentScene = this;
     this.scene.background = new THREE.Color(0x111c27);
     this.scene.fog = new THREE.Fog(0x111c27, 25, 55);
     this.scene.add(this.twin);
@@ -77,10 +88,12 @@ export class FactoryScene {
     this.renderer.setAnimationLoop(time => {
       this.controls.update();
       for (const item of this.models.values()) {
-        item.ring.material.opacity = item.machine.status === 'fault' ? 0.55 + Math.sin(time / 350) * 0.25 : 0.65;
+        item.ring.material.opacity = item.machine.status === 'fault' && !this.reducedMotion ? 0.55 + Math.sin(time / 350) * 0.25 : 0.65;
       }
+      this.highlighter.update(time, this.reducedMotion);
       this.renderer.render(this.scene, this.camera);
       this.labels.render(this.scene, this.camera);
+      this.arrangeLabels();
     });
   }
 
@@ -108,10 +121,16 @@ export class FactoryScene {
         const label = document.createElement('button');
         label.className = 'machine-label';
         label.addEventListener('click', () => this.onSelect(machine.id));
-        const anchor = new CSS2DObject(label);
-        anchor.position.set(0, machine.type === 'press' ? 3.25 : 2.85, 0);
+        const wrapper = document.createElement('div');
+        wrapper.className = 'label-anchor';
+        wrapper.append(label);
+        const anchor = new CSS2DObject(wrapper);
+        const bounds = new THREE.Box3().setFromObject(group);
+        anchor.position.set(0, bounds.max.y - group.position.y + 0.75, 0);
         group.add(anchor);
-        model = { group, ring, label, machine };
+        const rank = document.createElement('span');
+        rank.className = 'rank-badge';
+        model = { group, ring, label, anchor, rank, machine };
         this.models.set(machine.id, model);
         this.twin.add(group);
       }
@@ -124,12 +143,57 @@ export class FactoryScene {
       title.textContent = machine.name;
       const health = document.createElement('span');
       health.className = 'label-health';
-      health.textContent = `${Math.round(machine.health)}% · ${machine.status.toUpperCase()}`;
+      health.textContent = `${Math.round(machine.health)}%`;
+      const heading = document.createElement('span');
+      heading.className = 'label-heading';
+      heading.append(title, health);
       const sensors = document.createElement('small');
       sensors.textContent = relevantSensors(machine);
-      model.label.append(title, health, sensors);
+      model.label.append(heading, sensors);
+      const prediction = failureCountdown(machine.predicted_failure_min);
+      if (prediction) {
+        const countdown = document.createElement('span');
+        countdown.className = 'failure-countdown';
+        countdown.textContent = prediction;
+        model.label.append(countdown);
+      }
+      model.label.setAttribute('aria-label', `${machine.name}, ${machine.status}, ${Math.round(machine.health)}% health${prediction ? `, ${prediction}` : ''}`);
+      model.rank.hidden = !this.ranks.has(machine.id);
+      model.rank.textContent = String(this.ranks.get(machine.id) ?? '');
+      model.label.append(model.rank);
     }
     this.select(this.selected);
+  }
+
+  /** Keep compact labels inside the canvas and separate while orbiting/resizing. */
+  private arrangeLabels() {
+    const width = this.host.clientWidth;
+    const height = this.host.clientHeight;
+    const occupied: { x: number; y: number; w: number; h: number }[] = [];
+    for (const model of this.models.values()) {
+      const point = model.anchor.getWorldPosition(new THREE.Vector3()).project(this.camera);
+      if (point.z < -1 || point.z > 1) continue;
+      const w = model.label.offsetWidth;
+      const h = model.label.offsetHeight;
+      const left = (point.x + 1) * width / 2 - w / 2;
+      const top = (1 - point.y) * height / 2 - h / 2;
+      const { x, y } = placeLabel({ x: left, y: top, w, h }, occupied, width, height);
+      model.label.style.transform = `translate(${x - left}px, ${y - top}px)`;
+      occupied.push({ x, y, w, h });
+    }
+  }
+
+  highlightPart(machineId: string, part: Part | null): boolean {
+    return this.highlighter.highlightPart(this.models.get(machineId)?.group, part);
+  }
+
+  setRankBadges(queue: ScheduleItem[]) {
+    this.ranks = new Map(queue.map(item => [item.machine_id, item.rank]));
+    for (const [id, model] of this.models) {
+      model.rank.hidden = !this.ranks.has(id);
+      model.rank.textContent = String(this.ranks.get(id) ?? '');
+      model.rank.setAttribute('aria-label', `Repair priority ${this.ranks.get(id) ?? 'unassigned'}`);
+    }
   }
 
   select(id: string | null) {
@@ -148,6 +212,8 @@ export class FactoryScene {
   }
 
   dispose() {
+    if (currentScene === this) currentScene = undefined;
+    this.highlighter.dispose();
     this.resize.disconnect();
     this.renderer.setAnimationLoop(null);
     this.controls.dispose();

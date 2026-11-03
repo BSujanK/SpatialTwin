@@ -1,6 +1,7 @@
 import './style.css';
 import { subscribeTelemetry, useMock } from './api';
 import { FactoryScene } from './scene';
+import { ImpactView } from './impact';
 import type { Machine } from './types';
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
@@ -8,6 +9,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     <a class="brand" href="./"><span class="brand-mark">S</span> SpatialTwin<span class="brand-divider"></span><span class="brand-caption">OPERATIONS</span></a>
     <div class="header-right"><span class="plant">PLANT 01 / ASSEMBLY</span><span id="connection" class="connection" role="status">Connecting…</span></div>
   </header>
+  <section id="impact-hud" class="impact-hud" aria-label="Maintenance business impact"></section>
   <main class="workspace">
     <section class="twin-panel" aria-label="Factory digital twin">
       <div class="scene-toolbar"><div><span class="eyebrow">THE FACTORY, IN FOCUS</span><h1>Live digital twin<span class="live-dot"></span></h1></div><button id="reset-view" class="quiet-button">Reset view ↗</button></div>
@@ -15,6 +17,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
       <div id="empty-state" class="empty-state" role="status">Connecting to the factory…<small>Waiting for machine telemetry.</small></div>
       <div class="scene-footer"><div class="legend"><span><i data-status="ok"></i>Healthy</span><span><i data-status="warning"></i>Warning</span><span><i data-status="fault"></i>Fault</span></div><span>DRAG TO ORBIT · SCROLL TO ZOOM</span></div>
     </section>
+    <section id="agent-feed" class="agent-feed" aria-label="Agent activity"></section>
     <aside class="sidebar" aria-label="Machine telemetry">
       <div class="panel-heading"><span class="eyebrow">PRODUCTION LINE</span><span id="asset-count" class="count">0 ASSETS</span></div>
       <div id="machine-list" class="machine-list"></div>
@@ -36,6 +39,7 @@ let machines: Machine[] = [];
 let selectedId: string | null = null;
 let factory: FactoryScene | undefined;
 const rows = new Map<string, HTMLButtonElement>();
+const impact = new ImpactView(el('impact-hud'), el('agent-feed'), selectMachine);
 
 function selectMachine(id: string) {
   selectedId = id;
@@ -89,6 +93,7 @@ el('reset-view').addEventListener('click', () => factory?.resetView());
 el('data-description').textContent = useMock ? 'MOCK / 1 SECOND TICK' : 'LIVE API / WEBSOCKET';
 const unsubscribe = subscribeTelemetry({
   connection(state) {
+    impact.connection(state);
     const labels = { connecting: 'Connecting…', live: 'Telemetry connected', reconnecting: 'Disconnected · retrying', mock: 'Mock demo' };
     el('connection').textContent = labels[state];
     el('connection').dataset.state = state;
@@ -96,6 +101,10 @@ const unsubscribe = subscribeTelemetry({
       el('empty-state').textContent = 'Backend unavailable. Retrying automatically… Start the backend or enable VITE_USE_MOCK=true.';
     }
   },
+  kpis: kpis => impact.updateKpis(kpis),
+  events: events => impact.updateEvents(events),
+  schedule: schedule => factory?.setRankBadges(schedule.queue),
+  impactError: message => impact.error(message),
   machines(next, ts) {
     machines = next;
     if (factory) el('empty-state').hidden = machines.length > 0;
@@ -129,5 +138,6 @@ const unsubscribe = subscribeTelemetry({
   },
 });
 
-if (import.meta.hot) import.meta.hot.dispose(() => { unsubscribe(); factory?.dispose(); });
-window.addEventListener('pagehide', () => { unsubscribe(); factory?.dispose(); }, { once: true });
+const dispose = () => { unsubscribe(); impact.dispose(); factory?.dispose(); window.removeEventListener('pagehide', dispose); };
+if (import.meta.hot) import.meta.hot.dispose(dispose);
+window.addEventListener('pagehide', dispose, { once: true });

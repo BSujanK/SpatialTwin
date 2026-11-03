@@ -5,6 +5,8 @@ import { createServer } from 'vite';
 
 const machines = JSON.parse(readFileSync(new URL('../../shared/mock/machines.json', import.meta.url), 'utf8'));
 const kpis = JSON.parse(readFileSync(new URL('../../shared/mock/kpis.json', import.meta.url), 'utf8'));
+const eventsFixture = JSON.parse(readFileSync(new URL('../../shared/mock/events.json', import.meta.url), 'utf8'));
+const scheduleFixture = JSON.parse(readFileSync(new URL('../../shared/mock/schedule.json', import.meta.url), 'utf8'));
 
 test('live stream survives malformed frames, ignores stale REST, reconnects and cleans up', async t => {
   const previousMode = process.env.VITE_USE_MOCK;
@@ -95,11 +97,73 @@ test('mock subscription starts from shared fixtures and ticks without network ac
     connection: (state: string) => assert.equal(state, 'mock'),
     machines: (snapshot: unknown) => snapshots.push(snapshot),
     message: (message: { kpis: unknown }) => assert.deepEqual(message.kpis, kpis),
+    events: (events: unknown) => assert.deepEqual(events, eventsFixture),
+    schedule: (schedule: unknown) => assert.deepEqual(schedule, scheduleFixture),
   });
+  assert.deepEqual(await api.getEvents(), eventsFixture);
+  assert.deepEqual(await api.getSchedule(), scheduleFixture);
   assert.deepEqual(snapshots[0], machines);
   tick?.();
   assert.equal(snapshots.length, 2);
   assert.equal(fetchMock.mock.callCount(), 0);
   cleanup();
   assert.equal(cleared, true);
+});
+
+test('impact hydration merges concurrent events, ignores stale KPIs, and refreshes on reconnect', async t => {
+  const previousMode = process.env.VITE_USE_MOCK;
+  process.env.VITE_USE_MOCK = 'false';
+  const timers = new Map<number, { callback: () => void; delay: number }>();
+  let id = 0;
+  let cleanup = () => {};
+  Object.defineProperty(globalThis, 'window', { configurable: true, value: {
+    location: { origin: 'http://factory.example' },
+    setTimeout: (callback: () => void, delay: number) => { timers.set(++id, { callback, delay }); return id; },
+    clearTimeout: (timer: number) => timers.delete(timer),
+  } });
+  t.after(() => {
+    cleanup();
+    Reflect.deleteProperty(globalThis, 'window');
+    if (previousMode === undefined) delete process.env.VITE_USE_MOCK;
+    else process.env.VITE_USE_MOCK = previousMode;
+  });
+  const pending = new Map<string, (value: Response) => void>();
+  t.mock.method(globalThis, 'fetch', (path: string) => new Promise<Response>(resolve => pending.set(path, resolve)));
+  class Socket {
+    static instances: Socket[] = [];
+    onopen?: () => void;
+    onclose?: () => void;
+    onmessage?: (event: { data: string }) => void;
+    constructor() { Socket.instances.push(this); }
+    close() { this.onclose?.(); }
+    emit(message: unknown) { this.onmessage?.({ data: JSON.stringify(message) }); }
+  }
+  const original = globalThis.WebSocket;
+  Object.defineProperty(globalThis, 'WebSocket', { configurable: true, writable: true, value: Socket });
+  t.after(() => { globalThis.WebSocket = original; });
+  const vite = await createServer({ server: { middlewareMode: true, watch: null }, appType: 'custom' });
+  t.after(() => vite.close());
+  const api = await vite.ssrLoadModule('/src/api.ts');
+  let history: { id: number }[] = [];
+  const readings: unknown[] = [];
+  cleanup = api.subscribeTelemetry({ machines() {}, connection() {}, events: (value: typeof history) => { history = value; }, kpis: (value: unknown) => readings.push(value) });
+  const socket = Socket.instances[0];
+  socket.onopen?.();
+  const latest = { ...kpis, active_faults: 4, at_risk_usd_per_hour: 34000 };
+  socket.emit({ type: 'telemetry', ts: '2026-11-03T05:00:00Z', machines, kpis: latest });
+  socket.emit({ type: 'event', event: { ...eventsFixture[0], id: 6 } });
+  pending.get('/api/events?limit=50')?.(new Response(JSON.stringify(eventsFixture)));
+  pending.get('/api/kpis')?.(new Response(JSON.stringify(kpis)));
+  await new Promise(resolve => setTimeout(resolve, 10));
+  assert.deepEqual(history.map(event => event.id), [1, 2, 3, 4, 5, 6]);
+  assert.deepEqual(readings, [latest]);
+  socket.emit({ type: 'event', event: { ...eventsFixture[0], id: 6 } });
+  assert.equal(history.length, 6);
+  socket.close();
+  [...timers.values()].find(timer => timer.delay === 1000)?.callback();
+  Socket.instances[1].onopen?.();
+  pending.get('/api/events?limit=50')?.(new Response(JSON.stringify([eventsFixture[0]])));
+  pending.get('/api/kpis')?.(new Response(JSON.stringify(kpis)));
+  await new Promise(resolve => setTimeout(resolve, 10));
+  assert.deepEqual(history.map(event => event.id), [1], 'reconnect replaces old history after a reset');
 });
