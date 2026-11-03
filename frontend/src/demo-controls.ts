@@ -6,18 +6,18 @@ const MACHINES = ['CNC-01', 'CONV-02', 'PUMP-03', 'ROBOT-04', 'PRESS-05'];
 const FALLBACK_CODES = ['BRG-OVERHEAT', 'BELT-SLIP', 'HYD-LEAK', 'SPINDLE-VIB', 'JOINT-STALL'];
 
 const styles = `
-.demo-controls{position:absolute;left:28px;top:112px;z-index:40;display:grid;grid-template-columns:1fr 1fr;gap:6px;width:min(300px,calc(100vw - 28px));padding:10px;border:1px solid rgba(148,163,184,.22);border-radius:10px;background:rgba(10,18,26,.92);color:#cbd5e1;font:500 11px/1.3 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
-.demo-controls .demo-title{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0!important;border:0!important;background:none!important;color:#2dd4bf!important;letter-spacing:.14em;font-size:10px!important;text-align:left;cursor:pointer}
+.demo-controls{position:absolute;left:28px;top:112px;z-index:40;display:grid;grid-template-columns:1fr 1fr;gap:6px;width:min(300px,calc(100vw - 28px));padding:10px;border:1px solid #2A2A2E;border-radius:10px;background:rgba(11,11,12,.92);color:#F7F5F2;font:500 11px/1.3 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.demo-controls .demo-title{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0!important;border:0!important;background:none!important;color:#FF5F1F!important;letter-spacing:.14em;font-size:10px!important;text-align:left;cursor:pointer}
 .demo-controls .demo-title .chev{display:inline-block;transition:transform .2s ease;font-size:12px}
 .demo-controls.collapsed{width:auto;grid-template-columns:auto;padding:8px 12px}
 .demo-controls.collapsed > :not(.demo-title){display:none}
 .demo-controls.collapsed .demo-title .chev{transform:rotate(-90deg)}
-.demo-controls select,.demo-controls button{min-width:0;padding:7px 8px;border:1px solid rgba(148,163,184,.3);border-radius:6px;background:#0f1b27;color:inherit;font:inherit}
+.demo-controls select,.demo-controls button{min-width:0;padding:7px 8px;border:1px solid #2A2A2E;border-radius:6px;background:#1C1C1F;color:inherit;font:inherit}
 .demo-controls button{cursor:pointer}
-.demo-controls button.primary{border-color:#2dd4bf;background:#2dd4bf;color:#07121a;font-weight:700}
+.demo-controls button.primary{border-color:#FF5F1F;background:#FF5F1F;color:#0B0B0C;font-weight:700}
 .demo-controls button:disabled{opacity:.45;cursor:not-allowed}
-.demo-controls .demo-status{grid-column:1/-1;min-height:1.3em;color:#94a3b8}
-.demo-controls .demo-status[data-error]{color:#ff6b76}
+.demo-controls .demo-status{grid-column:1/-1;min-height:1.3em;color:#B8B3AD}
+.demo-controls .demo-status[data-error]{color:#FF6B6B}
 `;
 
 function option(value: string, label = value): HTMLOptionElement {
