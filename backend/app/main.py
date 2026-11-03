@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import logging
 import os
 from typing import Optional
 
@@ -71,6 +72,9 @@ async def _loop() -> None:
 
 @contextlib.asynccontextmanager
 async def lifespan(app: FastAPI):
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+    logging.getLogger("httpx").setLevel(logging.WARNING)  # keep request lines out of the log
+    llm.warm_up()
     task = asyncio.create_task(_loop())
     yield
     task.cancel()
