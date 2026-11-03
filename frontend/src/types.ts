@@ -1,4 +1,4 @@
-// Frontend mirror of docs/contracts/api.md v1.1. Shared contracts remain Lead-owned.
+// Frontend mirror of docs/contracts/api.md v1.2. Shared contracts remain Lead-owned.
 export type Status = 'ok' | 'warning' | 'fault';
 export type Part = 'motor' | 'belt' | 'valve' | 'bearing' | 'panel' | 'spindle' | 'arm_joint' | 'hydraulic_line';
 export interface Machine {
@@ -31,3 +31,46 @@ export interface AgentEvent {
 }
 export type TelemetryMessage = { type: 'telemetry'; ts: string; machines: Machine[]; kpis: Kpis };
 export type StreamMessage = TelemetryMessage | { type: 'event'; event: AgentEvent };
+
+export interface ScheduleItem {
+  rank: number;
+  machine_id: string;
+  priority_score: number;
+  reason: string;
+  est_repair_min: number;
+  technician: string;
+}
+export interface Schedule {
+  generated_at: string;
+  method: 'qubo-simulated-annealing';
+  energy: number;
+  baseline_cost: number;
+  optimized_cost: number;
+  savings_usd: number;
+  queue: ScheduleItem[];
+}
+export interface ProcedureStep {
+  index: number;
+  title: string;
+  instruction: string;
+  part: Part;
+  safety_warning: string | null;
+}
+export interface CopilotRequest {
+  machine_id: string;
+  message: string;
+  step_index: number;
+  history: { role: 'user' | 'assistant'; content: string }[];
+}
+export interface CopilotResponse {
+  reply: string;
+  step: ProcedureStep;
+  total_steps: number;
+  done: boolean;
+  source: 'llm' | 'scripted';
+  engine: string;
+}
+export interface ApiHealth {
+  ok: boolean;
+  ai: { provider: 'qualcomm' | 'anthropic' | 'scripted'; model: string | null; engine: string };
+}

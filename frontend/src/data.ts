@@ -1,4 +1,4 @@
-import type { Machine } from './types.ts';
+import type { AgentEvent, Machine } from './types.ts';
 
 export function jitterMachines(machines: Machine[], random = Math.random): Machine[] {
   // Bounded around the fixture, rather than accumulating a random walk.
@@ -19,4 +19,15 @@ export function websocketUrl(base: string): string {
   url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
   url.pathname = `${url.pathname.replace(/\/$/, '')}/ws/telemetry`;
   return url.toString();
+}
+
+export function mergeEvents(snapshot: AgentEvent[], incoming: AgentEvent[], limit = 50): AgentEvent[] {
+  const events = new Map(snapshot.map(event => [event.id, event]));
+  for (const event of incoming) events.set(event.id, event);
+  return [...events.values()].sort((a, b) => a.id - b.id).slice(-limit);
+}
+
+export function failureCountdown(minutes: number | null): string | null {
+  if (minutes === null || !Number.isFinite(minutes)) return null;
+  return minutes <= 0 ? 'failure imminent' : `fails in ${Math.ceil(minutes)} min`;
 }
