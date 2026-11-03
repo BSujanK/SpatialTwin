@@ -3,6 +3,8 @@ import { subscribeTelemetry, useMock } from './api';
 import { FactoryScene } from './scene';
 import { ImpactView } from './impact';
 import type { Machine } from './types';
+import { setupAR } from './xr'; // F5
+import { mountDemoControls } from './demo-controls'; // F5
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <header class="app-header">
@@ -53,6 +55,11 @@ try {
   el('empty-state').textContent = '3D rendering is unavailable. Use the asset list to inspect telemetry.';
   console.error('Could not initialize 3D view', error);
 }
+if (factory) { // F5
+  const ar = setupAR({ renderer: factory.renderer, scene: factory.scene, camera: factory.camera, root: factory.twin, overlay: el('app'), controls: factory.controls }); // F5
+  factory.onXRFrame = ar.onXRFrame; // F5
+} // F5
+mountDemoControls(el('app')); // F5
 
 function renderDetails() {
   for (const [id, row] of rows) row.setAttribute('aria-pressed', String(id === selectedId));

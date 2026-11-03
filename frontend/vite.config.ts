@@ -1,4 +1,5 @@
 import { defineConfig, loadEnv } from 'vite';
+import basicSsl from '@vitejs/plugin-basic-ssl'; // F5
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), 'VITE_');
@@ -7,5 +8,6 @@ export default defineConfig(({ mode }) => {
     '/api': { target, changeOrigin: true },
     '/ws': { target, changeOrigin: true, ws: true },
   };
-  return { server: { proxy }, preview: { proxy } };
+  // F5: self-signed HTTPS (`npm run dev:https`) so Android Chrome allows WebXR over the LAN.
+  return { plugins: mode === 'https' ? [basicSsl()] : [], server: { proxy }, preview: { proxy } };
 });

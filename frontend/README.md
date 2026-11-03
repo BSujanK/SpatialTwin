@@ -30,3 +30,14 @@ The impact HUD shows live dollars at risk, avoided downtime cost, average MTTR, 
 F3/F4 can import `highlightPart(machineId, partOrNull)` and `setRankBadges(queue)` from `src/scene.ts`, or call the same methods on a `FactoryScene`. Highlighting restores the original material on clear/change, supports reduced motion, and returns false for an unavailable part. Rank badges clear when the corresponding machine leaves the queue. Compact labels are anchored above each model and adjusted to avoid collisions and canvas edges.
 
 `npm run test:impact -- http://localhost:5174` is an opt-in integration check against a **local disposable demo**. It resets the scenario, injects SPINDLE-VIB on CNC-01, verifies the autonomous event sequence, $34,000/hour exposure, four active faults and updated ranks, prints event/KPI latency, then resets the scenario again. No production service should be used for this check.
+
+## AR mode on a phone (F5)
+
+WebXR needs HTTPS. The `https` mode serves the app with a self-signed certificate and the same `/api` and `/ws` proxy.
+
+1. Start the backend (see the root README) so `/api` and `/ws` answer.
+2. In `frontend/`, run `npm run dev:https`.
+3. On an Android phone with Chrome, on the same Wi-Fi as the laptop, open `https://<laptop-LAN-IP>:5173` and accept the certificate warning.
+4. Tap **Enter AR**, move the phone until the teal reticle appears on a surface, then tap to place the twin. Tap again elsewhere to move it. Use **Stop AR** (top right) to return to the 3D view.
+
+Where WebXR is unavailable (desktop, iOS, plain HTTP) a small notice replaces the button and the normal 3D view keeps working. The bottom-left **Demo controls** panel injects a fault (`POST /api/demo/inject-fault`) or resets the scenario (`POST /api/demo/reset`); it is disabled in mock mode.
