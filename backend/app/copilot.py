@@ -1,9 +1,7 @@
 """Repair copilot. Step advancement is decided here, in code. The LLM only phrases replies."""
 from __future__ import annotations
 
-import os
-from typing import Optional
-
+from . import llm
 from .procedures import get_procedure
 
 START = {"start", "begin", "go"}
@@ -66,38 +64,22 @@ def build_system_prompt(machine: dict, step: dict, total: int, kind: str) -> str
     )
 
 
-def llm_reply(kind: str, machine: dict, step: dict, total: int, message: str, history: list[dict]) -> Optional[str]:
-    """Return the model's reply, or None when there is no key or anything fails."""
-    key = os.getenv("ANTHROPIC_API_KEY")
-    if not key:
-        return None
-    try:
-        import anthropic
-
-        client = anthropic.Anthropic(api_key=key, timeout=8.0, max_retries=0)
-        msgs: list[dict] = []
-        for h in (history or [])[-6:]:
-            if h.get("role") in ("user", "assistant") and h.get("content"):
-                if msgs and msgs[-1]["role"] == h["role"]:
-                    msgs[-1]["content"] += "\n" + h["content"]
-                else:
-                    msgs.append({"role": h["role"], "content": h["content"]})
-        while msgs and msgs[0]["role"] != "user":
-            msgs.pop(0)
-        if msgs and msgs[-1]["role"] == "user":
-            msgs[-1]["content"] += "\n" + message
-        else:
-            msgs.append({"role": "user", "content": message})
-        resp = client.messages.create(
-            model=os.getenv("COPILOT_MODEL", "claude-haiku-5-5"),
-            max_tokens=200,
-            system=build_system_prompt(machine, step, total, kind),
-            messages=msgs,
-        )
-        text = "".join(getattr(b, "text", "") for b in resp.content).strip()
-        return text or None
-    except Exception:
-        return None
+def llm_reply(kind: str, machine: dict, step: dict, total: int, message: str, history: list[dict]):
+    """Return (text, engine) from the provider chain, or None when no provider answers."""
+    msgs: list[dict] = []
+    for h in (history or [])[-6:]:
+        if h.get("role") in ("user", "assistant") and h.get("content"):
+            if msgs and msgs[-1]["role"] == h["role"]:
+                msgs[-1]["content"] += " " + h["content"]
+            else:
+                msgs.append({"role": h["role"], "content": h["content"]})
+    while msgs and msgs[0]["role"] != "user":
+        msgs.pop(0)
+    if msgs and msgs[-1]["role"] == "user":
+        msgs[-1]["content"] += " " + message
+    else:
+        msgs.append({"role": "user", "content": message})
+    return llm.chat(build_system_prompt(machine, step, total, kind), msgs, max_tokens=200)
 
 
 def handle(req: dict, machine: dict, proc: dict, on_guide, on_resolve) -> dict:
@@ -119,7 +101,8 @@ def handle(req: dict, machine: dict, proc: dict, on_guide, on_resolve) -> dict:
             entered = True
     step = steps[idx]
 
-    text = None if finished else llm_reply(kind, machine, step, total, req["message"], req.get("history", []))
+    res = None if finished else llm_reply(kind, machine, step, total, req["message"], req.get("history", []))
+    text, engine = res if res else (None, llm.SCRIPTED_ENGINE)
     source = "llm" if text else "scripted"
     if text is None:
         text = scripted_reply(kind, machine, step, total, req["message"], finished)
@@ -127,4 +110,5 @@ def handle(req: dict, machine: dict, proc: dict, on_guide, on_resolve) -> dict:
         text += f" Safety: {step['safety_warning']}"  # code guarantees the warning is spoken
     if finished:
         on_resolve(machine["id"])
-    return {"reply": text, "step": step, "total_steps": total, "done": finished, "source": source}
+    return {"reply": text, "step": step, "total_steps": total, "done": finished, "source": source,
+            "engine": engine}

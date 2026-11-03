@@ -9,7 +9,7 @@ import threading
 import time
 from typing import Callable, Optional
 
-from . import scheduler
+from . import llm, scheduler
 from .simulator import Simulator, now_iso
 
 SEVERITY = {"ok": 0, "warning": 1, "fault": 2}
@@ -27,6 +27,7 @@ class Agent:
     def reset(self) -> None:
         """Clear the log and KPIs, then register faults that already exist (no dispatch yet)."""
         with self.lock:
+            self._gen = getattr(self, "_gen", 0) + 1
             self.events: list[dict] = []
             self._next_id = 1
             self._wo = 1000
@@ -88,6 +89,31 @@ class Agent:
         pf = m["predicted_failure_min"]
         eta = f" Predicted failure in ~{pf} min." if pf else ""
         self._emit("diagnose", m["id"], f"Diagnosis: {f['code']} ({f['part'].replace('_', ' ')}).{eta}")
+        self._root_cause_async(m)
+
+    def _root_cause_async(self, m: dict) -> None:
+        """Ask the LLM for a one-sentence root cause in the background; never blocks the loop."""
+        if not llm.available():
+            return
+        threading.Thread(target=self._root_cause, args=(m, self._gen), daemon=True).start()
+
+    def _root_cause(self, m: dict, gen: int) -> None:
+        f, s = m["fault"], m["sensors"]
+        system = ("You are a senior industrial maintenance engineer. In ONE sentence (max 30 words) give the most "
+                  "likely root cause and the recommended action. No markdown, no preamble.")
+        user = (f"Machine {m['name']} ({m['id']}), health {m['health']:.0f}/100. Fault code {f['code']}: "
+                f"{f['description']}. Live sensors: temperature {s['temperature_c']} C, vibration "
+                f"{s['vibration_mm_s']} mm/s, pressure {s['pressure_bar']} bar, {s['rpm']} rpm. "
+                f"Predicted failure in {m['predicted_failure_min']} min.")
+        try:
+            res = llm.chat(system, [{"role": "user", "content": user}], max_tokens=80)
+        except Exception:
+            return
+        if not res or gen != self._gen:  # failure: emit nothing; stale after a demo reset: drop
+            return
+        text, engine = res
+        prefix = "Qualcomm Cloud AI 100: " if engine.startswith(llm.QUALCOMM_LABEL) else "Anthropic: "
+        self._emit("diagnose", m["id"], prefix + " ".join(text.split()))
 
     def _reschedule(self) -> None:
         """Re-run the annealer, log it, and count savings when the order changed."""

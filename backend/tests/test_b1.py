@@ -44,7 +44,7 @@ def test_prediction_from_trend():
 def test_endpoints():
     sim.reset(); agent.reset()
     c = TestClient(app)
-    assert c.get("/api/health").json() == {"ok": True}
+    assert c.get("/api/health").json() == {"ok": True, "ai": {"provider": "scripted", "model": None, "engine": "Scripted fallback"}}
     assert len(c.get("/api/machines").json()) == 5
     assert c.get("/api/machines/PUMP-03").json()["fault"]["code"] == "BRG-OVERHEAT"
     assert c.get("/api/machines/NOPE").status_code == 404

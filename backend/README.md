@@ -10,9 +10,17 @@ pip install -r requirements.txt
 uvicorn app.main:app --port 8000
 ```
 
-Optional environment variables (see `.env.example`; `.env` is not loaded automatically, so export them in your shell):
-`ANTHROPIC_API_KEY`, `COPILOT_MODEL` (default `claude-haiku-5-5`), `SIM_SPEED`.
-Without a key the copilot answers with scripted replies.
+Configuration lives in `backend/.env` (copy `.env.example`; it is gitignored and loaded with python-dotenv, and real environment variables win):
+
+| Variable | Purpose |
+|---|---|
+| `QUALCOMM_API_KEY` | Enables **Qualcomm Cloud AI 100** (OpenAI-compatible `POST {QUALCOMM_ENDPOINT}/chat/completions`, Bearer auth) |
+| `QUALCOMM_ENDPOINT` | Default `https://aisuite.cirrascale.com/apis/v2` |
+| `QUALCOMM_MODEL` | Default `Llama-3.1-8B` |
+| `ANTHROPIC_API_KEY`, `COPILOT_MODEL` | Optional second provider |
+| `SIM_SPEED` | Fault drift multiplier |
+
+AI provider order: Qualcomm, then Anthropic, then scripted replies. An error or 8 s timeout falls through to the next provider (a failed provider is skipped for 30 s). `GET /api/health` shows which one is active. The AI is used for copilot replies and for a background one-sentence root-cause `diagnose` event after each fault. If the OpenAI-style call fails and Qualcomm's `imagine` SDK is installed, the SDK is tried as a fallback. Keys are never logged.
 
 ## Test
 

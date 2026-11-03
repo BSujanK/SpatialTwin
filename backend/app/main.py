@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from . import scheduler
-from . import copilot
+from . import copilot, llm
 from .agent import Agent
 from .procedures import get_procedure
 from .simulator import FAULTS, Simulator, now_iso
@@ -87,7 +87,7 @@ class InjectRequest(BaseModel):
 
 @app.get("/api/health")
 def health():
-    return {"ok": True}
+    return {"ok": True, "ai": llm.ai_status()}
 
 
 @app.get("/api/machines")
