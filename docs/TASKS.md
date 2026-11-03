@@ -32,3 +32,13 @@ Work top to bottom in your column, with one PR per task (B1+B2 may share a PR if
 | L2 | Review and merge PRs; keep STATUS.md current |
 | L3 | Integration test at ~11:45: run both sides live, fix contract drift |
 | L4 | Demo script + root README polish, code freeze 12:40 |
+
+
+## Phase 2: Autonomous control (contract v1.3, design in `docs/design/2026-11-03-autonomous-control-design.md`)
+
+| ID | Owner | Task | Done when |
+|---|---|---|---|
+| **B10** | Claude-2 | **Control engine** `backend/app/control.py`: mitigation catalogue (design §3.2), deterministic economic decision rule (§3.3), safety envelope (§3.4), `ControlAdapter` interface + `SimulatedAdapter` (applies setpoints to the simulator: degradation-rate multiplier, rpm × speed_pct, temperature drift reduced by cooling) + `OpcUaAdapter` stub with documented node mapping. Machine gains `control`. Policy store with defaults. | Unit tests: envelope never violated (randomised), decision picks controlled stop when nothing else works, catalogue covers all 5 faults |
+| **B11** | Claude-2 | **Loop integration**: mitigate after diagnose (before schedule) honouring autonomy advise/approve/auto; watchdog escalation; lockout interlock; restore on resolve; the scheduler uses the mitigated time to failure; async Qualcomm `rationale` through the existing worker (the LLM never touches numbers); `/api/control/*` endpoints; KPIs; `control` websocket messages; `mitigate/escalate/restore` events; extend the soak test. | Live, in Auto: inject BRG-OVERHEAT → within 2 s a `mitigate` event, active action with ttf_after > ttf_before, schedule re-planned; rationale within ~6 s |
+| **F8** | Astra | **Autonomous-control panel** (sidebar tab next to "Repair priorities"): Advise/Approve/Auto switch ↔ `PUT /api/control/policy`; action cards (machine, label, TTF bar "18 → 61 min", "−$900/h throughput · avoids $X", ⚡ rationale with engine badge, Approve/Reject or Revert); live via `control` ws messages; mock mode from `shared/mock/control_*.json`. | Works in mock and live; buttons round-trip |
+| **F9** | Astra | **Twin + HUD + feed**: blue status ring + "⚙ 70%" chip for `mitigated`, grey/still for `safe_stop`; moving parts animate ∝ `speed_pct`; HUD tile "Failures prevented · +N min TTF"; feed icons ⚙️ mitigate, ⏫ escalate, ↩️ restore. | Mitigation is visible on the projector within 1 s |

@@ -1,0 +1,59 @@
+[
+  {
+    "id": "CA-1001",
+    "machine_id": "PUMP-03",
+    "created_at": "2026-11-03T09:05:04+05:30",
+    "kinds": [
+      "derate_speed",
+      "boost_cooling"
+    ],
+    "label": "Derate pump to 70% + coolant 100%",
+    "setpoints": {
+      "speed_pct": 70,
+      "load_pct": 100,
+      "coolant_pct": 100
+    },
+    "previous_setpoints": {
+      "speed_pct": 100,
+      "load_pct": 100,
+      "coolant_pct": 50
+    },
+    "status": "active",
+    "autonomy": "auto",
+    "reason": "Predicted failure in 18 min, but the next technician arrives in ~40 min. Derating cuts bearing heat build-up (degradation x0.30).",
+    "rationale": "Slowing the coolant pump to 70% and maxing coolant cuts bearing heat, buying about 43 minutes until Tech B arrives, for $900/h of throughput.",
+    "rationale_engine": "Qualcomm Cloud AI 100 \u00b7 Llama-3.3-70B",
+    "ttf_before_min": 18,
+    "ttf_after_min": 61,
+    "throughput_cost_usd_per_hour": 900,
+    "expected_loss_avoided_usd": 10450
+  },
+  {
+    "id": "CA-1002",
+    "machine_id": "PRESS-05",
+    "created_at": "2026-11-03T09:15:04+05:30",
+    "kinds": [
+      "reduce_pressure"
+    ],
+    "label": "Reduce press load to 80%, stroke rate 60%",
+    "setpoints": {
+      "speed_pct": 60,
+      "load_pct": 80,
+      "coolant_pct": 50
+    },
+    "previous_setpoints": {
+      "speed_pct": 100,
+      "load_pct": 100,
+      "coolant_pct": 50
+    },
+    "status": "proposed",
+    "autonomy": "approve",
+    "reason": "Hydraulic pressure is falling 4 bar/min; lower working pressure slows the leak (degradation x0.40) until Tech A arrives.",
+    "rationale": null,
+    "rationale_engine": null,
+    "ttf_before_min": 40,
+    "ttf_after_min": 100,
+    "throughput_cost_usd_per_hour": 6000,
+    "expected_loss_avoided_usd": 21800
+  }
+]

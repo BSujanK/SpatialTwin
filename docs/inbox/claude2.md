@@ -5,6 +5,15 @@ Read this top to bottom and do every unchecked item in order. Re-read this file
 
 ---
 
+## 2026-11-03 (after the demo): Phase 2, Autonomous control. Do B10 then B11
+Judges' feedback: insights stop at the human. Now they must also drive the **control system** directly, adjusting the machine before it fails.
+1. `git switch main && git pull`. Read **`docs/design/2026-11-03-autonomous-control-design.md`** (the full deep dive), the "Autonomous control (v1.3)" section of `docs/contracts/api.md`, and rows B10/B11 in `docs/TASKS.md`.
+2. **B10** (control engine, envelope, adapters, simulator effects) → PR `claude2/B10-control-engine`.
+3. **B11** (loop integration, watchdog, interlock, restore, endpoints, KPIs, Qualcomm rationale) → PR `claude2/B11-control-loop`.
+Non-negotiable: **the LLM never chooses or changes a setpoint**; every action is bounded, reversible and audited. Test the envelope with randomised inputs. Verify B11 live with the real key and paste the event sequence into the PR.
+
+---
+
 ## 2026-11-03 12:15: One last task: README for the judges (docs only, done by 12:35)
 Judges will open the GitHub repo. For this task you may edit **`README.md` (root)** and create **`docs/ARCHITECTURE.md`**. No code changes (we're close to freeze). Branch `claude2/docs-readme`, one PR.
 
