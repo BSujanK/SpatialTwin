@@ -9,7 +9,7 @@ import threading
 import time
 from typing import Callable, Optional
 
-from . import scheduler
+from . import llm, scheduler
 from .simulator import Simulator, now_iso
 
 SEVERITY = {"ok": 0, "warning": 1, "fault": 2}
@@ -27,6 +27,7 @@ class Agent:
     def reset(self) -> None:
         """Clear the log and KPIs, then register faults that already exist (no dispatch yet)."""
         with self.lock:
+            self._gen = getattr(self, "_gen", 0) + 1
             self.events: list[dict] = []
             self._next_id = 1
             self._wo = 1000
@@ -88,6 +89,31 @@ class Agent:
         pf = m["predicted_failure_min"]
         eta = f" Predicted failure in ~{pf} min." if pf else ""
         self._emit("diagnose", m["id"], f"Diagnosis: {f['code']} ({f['part'].replace('_', ' ')}).{eta}")
+        self._root_cause_async(m)
+
+    def _root_cause_async(self, m: dict) -> None:
+        """Ask the LLM for a one-sentence root cause in the background; never blocks the loop."""
+        if not llm.available():
+            return
+        threading.Thread(target=self._root_cause, args=(m, self._gen), daemon=True).start()
+
+    def _root_cause(self, m: dict, gen: int) -> None:
+        f, s = m["fault"], m["sensors"]
+        system = ("You are a senior industrial maintenance engineer. In ONE sentence (max 30 words) give the most "
+                  "likely root cause and the recommended action. No markdown, no preamble.")
+        user = (f"Machine {m['name']} ({m['id']}), health {m['health']:.0f}/100. Fault code {f['code']}: "
+                f"{f['description']}. Live sensors: temperature {s['temperature_c']} C, vibration "
+                f"{s['vibration_mm_s']} mm/s, pressure {s['pressure_bar']} bar, {s['rpm']} rpm. "
+                f"Predicted failure in {m['predicted_failure_min']} min.")
+        try:
+            res = llm.chat(system, [{"role": "user", "content": user}], max_tokens=80)
+        except Exception:
+            return
+        if not res or gen != self._gen:  # failure: emit nothing; stale after a demo reset: drop
+            return
+        text, engine = res
+        prefix = "Qualcomm Cloud AI 100: " if engine.startswith(llm.QUALCOMM_LABEL) else "Anthropic: "
+        self._emit("diagnose", m["id"], prefix + " ".join(text.split()))
 
     def _reschedule(self) -> None:
         """Re-run the annealer, log it, and count savings when the order changed."""
@@ -161,12 +187,30 @@ class Agent:
                 if name:
                     self._wo += 1
                     self.tech[name].update(machine_id=machine_id, wo=f"WO-{self._wo}")
+                else:
+                    name = self._reroute(machine_id)
             if name is None or self.tech[name]["status"] == "repairing":
                 return
             self.tech[name]["status"] = "repairing"
             m = self.sim.get(machine_id)
             self._emit("guide", machine_id,
                        f"{name} started the AR-guided repair of {m['name']} ({self.tech[name]['wo']}).")
+
+    def _reroute(self, machine_id: str) -> Optional[str]:
+        """No tech assigned and none idle: pull the tech holding the lowest-ranked job (not yet repairing)."""
+        rank = {q["machine_id"]: q["rank"] for q in self.schedule["queue"]}
+        cands = [(rank.get(t["machine_id"], 99), n) for n, t in self.tech.items()
+                 if t["machine_id"] and t["status"] == "en_route"]
+        if not cands:
+            return None
+        _, name = max(cands)
+        old = self.tech[name]["machine_id"]
+        self._wo += 1
+        self.tech[name].update(machine_id=machine_id, wo=f"WO-{self._wo}")
+        m = self.sim.get(machine_id)
+        self._emit("dispatch", machine_id,
+                   f"Re-routed {name} from {old} to {m['name']} ({machine_id}) with work order {self.tech[name]['wo']}.")
+        return name
 
     def on_resolve(self, machine_id: str) -> None:
         """Last copilot step done. Marks the machine ok if the caller has not already."""

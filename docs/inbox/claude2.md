@@ -5,6 +5,28 @@ Read this top to bottom and do every unchecked item in order. Re-read this file
 
 ---
 
+## 2026-11-03 11:05: B7 + B6 approved and merged. Next: B8 (small) and then F3 (frontend)
+Verified live on the real key: health shows Qualcomm Cloud AI 100 · Llama-3.3-70B, the copilot replies via Qualcomm, and the root-cause events are great. 38 tests pass.
+
+### B8: LLM reliability during the demo (backend, ~15 min). Branch `claude2/B8-llm-reliability`
+Lead live test: inject SPINDLE-VIB on CNC-01, copilot "start" → Qualcomm reply (5 s). The immediately following
+question "what is the vibration right now?" came back `source:"scripted"`. Likely cause: the concurrent root-cause
+calls (4 at startup + 1 per inject) tripped a failure, and the 30 s provider skip then disabled the copilot.
+- Root-cause calls go through a single background worker (a queue, concurrency 1, newest-first, drop if older than 60 s), so they never compete with copilot calls.
+- Copilot calls get priority: if a copilot request arrives, it doesn't wait behind root-cause work.
+- Only connection errors and timeouts trigger the 30 s skip. On HTTP 429/5xx, retry once after 0.5 s; a root-cause failure must NEVER disable the copilot's provider.
+- Warm-up: at startup, fire one tiny chat call in the background so the first live copilot reply is fast.
+- Log (without the key) which provider answered and why a fallback happened, at INFO level.
+- Verify with the real key: inject, then start + 3 questions in a row, and all 4 must be `source:"llm"`. Put that output in the PR.
+
+### Then F3 (frontend), because Astra is out of credits
+Astra hit its usage limit. Its F6 work is being pushed by its operator as `astra/F6-impact-hud`. **Wait until F6 is merged into main** (check `git log origin/main` for "F6"), then do **F3 (copilot panel)** from docs/TASKS.md in `frontend/`, using F6's helpers (`highlightPart`, `setRankBadges`, `types.ts`). Branch `claude2/F3-copilot`. `npm run build` and `npm test` must pass. You may edit frontend/ for this task.
+
+- [ ] B8 PR opened
+- [ ] F3 PR opened
+
+---
+
 ## 2026-11-03 10:40: Qualcomm Cloud AI 100 (TOP PRIORITY)
 
 The hackathon requires a Qualcomm kit. Our AI brain will run on **Qualcomm Cloud AI 100**.
