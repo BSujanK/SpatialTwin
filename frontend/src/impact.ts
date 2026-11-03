@@ -1,7 +1,7 @@
 import type { AgentEvent, Kpis } from './types';
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
-const icons: Partial<Record<AgentEvent['kind'], string>> = { detect: '🔍', diagnose: '🧠', schedule: '⚛️', dispatch: '🚚', guide: '🛠️', resolve: '✅' };
+const icons: Record<AgentEvent['kind'], string> = { detect: '🔍', diagnose: '🧠', schedule: '⚛️', dispatch: '🚚', guide: '🛠️', resolve: '✅', mitigate: '⚙️', escalate: '⏫', restore: '↩️' };
 
 export class ImpactView {
   private rows = new Map<number, HTMLLIElement>();
@@ -18,6 +18,7 @@ export class ImpactView {
       <div class="kpi"><span class="eyebrow">DOWNTIME COST AVOIDED</span><strong id="avoided-value">—</strong><small>From optimized repair orders</small></div>
       <div class="kpi"><span class="eyebrow">AVG MTTR</span><strong id="mttr-value">—</strong><small id="repairs-value">Awaiting telemetry</small></div>
       <div class="kpi"><span class="eyebrow">ACTIVE FAULTS</span><strong id="faults-value">—</strong><small>Machines requiring attention</small></div>
+      <div class="kpi control-kpi"><span class="eyebrow">FAILURES PREVENTED</span><strong id="prevented-value">0</strong><small id="ttf-gained">+0 min time-to-failure gained</small></div>
       <div class="technicians"><span class="eyebrow">TECHNICIANS</span><div id="technician-chips"></div></div>
     `;
     feed.innerHTML = `
@@ -74,6 +75,8 @@ export class ImpactView {
     this.get('mttr-value').textContent = kpis.avg_mttr_min === null ? '—' : `${kpis.avg_mttr_min.toFixed(1)} min`;
     this.get('repairs-value').textContent = `${kpis.repairs_completed} repairs completed`;
     this.get('faults-value').textContent = String(kpis.active_faults);
+    this.get('prevented-value').textContent = String(kpis.failures_prevented ?? 0);
+    this.get('ttf-gained').textContent = `+${Math.round(kpis.ttf_extended_min ?? 0)} min time-to-failure gained`;
     this.get('technician-chips').replaceChildren(...kpis.technicians.map(technician => {
       const chip = document.createElement('button');
       chip.className = 'technician-chip';
@@ -104,6 +107,7 @@ export class ImpactView {
         const entry = document.createElement(event.machine_id ? 'button' : 'div');
         entry.className = 'event-entry';
         entry.dataset.kind = event.kind;
+        entry.classList.toggle('mitigate-event', event.kind === 'mitigate');
         entry.classList.toggle('qualcomm-event', event.message.startsWith('Qualcomm Cloud AI 100:'));
         const icon = document.createElement('span');
         icon.className = 'event-icon';

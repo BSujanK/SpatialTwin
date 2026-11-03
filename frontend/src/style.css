@@ -179,6 +179,19 @@ button.event-entry:hover { background: #1b2a35; }
 .machine-label.compact { width: 130px; }
 .machine-label.compact small { display: none; }
 
+/* F9: control status stays distinct from the machine's underlying fault. */
+.machine-label[data-control=mitigated] { border-left-color: #3b82f6; }
+.machine-label[data-control=safe_stop] { border-left-color: #8795a1; }
+.machine-control-chip { align-self: flex-start; padding: 2px 6px; border-radius: 4px; color: #c8e3ff; background: #1d4372; font-size: 10px; font-weight: 600; }
+.machine-label[data-control=safe_stop] .machine-control-chip { background: #35404a; color: #d5dde5; }
+.mitigate-event { border-left: 2px solid #3b82f6; background: #173f6b55; }
+.mitigate-event .event-meta strong { color: #89baff; }
+.mitigate-event.qualcomm-event { border-right: 2px solid #ac9cff; }
+.impact-hud { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.1fr) minmax(0, .65fr) minmax(0, .65fr) minmax(0, 1fr) minmax(0, 1.3fr); }
+.control-kpi > strong { color: #89baff; }
+@media (max-width: 1100px) and (min-width: 801px) { .impact-hud { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 800px) { .impact-hud { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
 /* F8: autonomous control, contained within the existing sidebar. */
 .sidebar-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-bottom: 16px; }
 .sidebar-tabs button { padding: 10px 5px; border: 1px solid #344855; border-radius: 5px; background: #14232e; font-size: 11px; }
