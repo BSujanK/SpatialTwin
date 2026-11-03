@@ -102,6 +102,7 @@ test('mock subscription starts from shared fixtures and ticks without network ac
   });
   assert.deepEqual(await api.getEvents(), eventsFixture);
   assert.deepEqual(await api.getSchedule(), scheduleFixture);
+  assert.deepEqual(await api.recomputeSchedule(), scheduleFixture);
   assert.deepEqual(snapshots[0], machines);
   tick?.();
   assert.equal(snapshots.length, 2);
@@ -128,7 +129,7 @@ test('impact hydration merges concurrent events, ignores stale KPIs, and refresh
     else process.env.VITE_USE_MOCK = previousMode;
   });
   const pending = new Map<string, (value: Response) => void>();
-  t.mock.method(globalThis, 'fetch', (path: string) => new Promise<Response>(resolve => pending.set(path, resolve)));
+  const fetchMock = t.mock.method(globalThis, 'fetch', (path: string) => new Promise<Response>(resolve => pending.set(path, resolve)));
   class Socket {
     static instances: Socket[] = [];
     onopen?: () => void;
@@ -146,7 +147,8 @@ test('impact hydration merges concurrent events, ignores stale KPIs, and refresh
   const api = await vite.ssrLoadModule('/src/api.ts');
   let history: { id: number }[] = [];
   const readings: unknown[] = [];
-  cleanup = api.subscribeTelemetry({ machines() {}, connection() {}, events: (value: typeof history) => { history = value; }, kpis: (value: unknown) => readings.push(value) });
+  const schedules: unknown[] = [];
+  cleanup = api.subscribeTelemetry({ machines() {}, connection() {}, events: (value: typeof history) => { history = value; }, kpis: (value: unknown) => readings.push(value), schedule: (value: unknown) => schedules.push(value) });
   const socket = Socket.instances[0];
   socket.onopen?.();
   const latest = { ...kpis, active_faults: 4, at_risk_usd_per_hour: 34000 };
@@ -154,11 +156,26 @@ test('impact hydration merges concurrent events, ignores stale KPIs, and refresh
   socket.emit({ type: 'event', event: { ...eventsFixture[0], id: 6 } });
   pending.get('/api/events?limit=50')?.(new Response(JSON.stringify(eventsFixture)));
   pending.get('/api/kpis')?.(new Response(JSON.stringify(kpis)));
+  pending.get('/api/schedule')?.(new Response(JSON.stringify(scheduleFixture)));
   await new Promise(resolve => setTimeout(resolve, 10));
   assert.deepEqual(history.map(event => event.id), [1, 2, 3, 4, 5, 6]);
   assert.deepEqual(readings, [latest]);
   socket.emit({ type: 'event', event: { ...eventsFixture[0], id: 6 } });
   assert.equal(history.length, 6);
+  assert.deepEqual(schedules, [scheduleFixture]);
+  const scheduleRequests = () => fetchMock.mock.calls.filter(call => call.arguments[0] === '/api/schedule').length;
+  const before = scheduleRequests();
+  socket.emit({ type: 'event', event: { ...eventsFixture[0], id: 7, kind: 'schedule', machine_id: null } });
+  assert.equal(scheduleRequests(), before + 1, 'every schedule event refreshes the queue');
+  const updated = { ...scheduleFixture, queue: [] };
+  pending.get('/api/schedule')?.(new Response(JSON.stringify(updated)));
+  await new Promise(resolve => setTimeout(resolve, 10));
+  assert.deepEqual(schedules.at(-1), updated);
+  const recompute = api.recomputeSchedule();
+  const post = fetchMock.mock.calls.find(call => call.arguments[0] === '/api/schedule/recompute');
+  assert.equal((post?.arguments[1] as RequestInit).method, 'POST');
+  pending.get('/api/schedule/recompute')?.(new Response(JSON.stringify(scheduleFixture)));
+  assert.deepEqual(await recompute, scheduleFixture);
   socket.close();
   [...timers.values()].find(timer => timer.delay === 1000)?.callback();
   Socket.instances[1].onopen?.();
