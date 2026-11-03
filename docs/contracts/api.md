@@ -111,7 +111,8 @@ interface CopilotResponse {
 | POST | `/api/schedule/recompute` | `Schedule` (runs the annealer now) |
 | GET | `/api/procedures/{fault_code}` | `{ "fault_code": string, "title": string, "steps": ProcedureStep[] }` |
 | POST | `/api/copilot` | body `CopilotRequest` → `CopilotResponse` |
-| POST | `/api/demo/inject-fault` | body `{ "machine_id": string, "code": string }` → `Machine`. Forces a fault for the live demo. |
+| POST | `/api/demo/reset` | `{ "ok": true }`. Restores the starting scenario (machines, events, KPIs, technicians) for a fresh demo run. Frontend: add a small "Reset demo" button next to Inject fault. |
+| POST | `/api/demo/inject-fault` | body `{ "machine_id": string, "code": string }` → `Machine`. Forces a fault for the live demo. Valid codes: BRG-OVERHEAT, BELT-SLIP, HYD-LEAK, SPINDLE-VIB, JOINT-STALL. |
 
 ## Copilot step logic
 

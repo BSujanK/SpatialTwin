@@ -1,6 +1,6 @@
 # STATUS (maintained by the Lead)
 
-_Last update: 09:50 IST_
+_Last update: 10:15 IST_
 
 ## Timeline (IST, 2026-11-03)
 | Time | Milestone |
@@ -15,11 +15,11 @@ _Last update: 09:50 IST_
 ## Board
 | Task | Owner | State | PR |
 |---|---|---|---|
-| B1 | Claude-2 | todo | |
-| B2 | Claude-2 | todo | |
-| B5 | Claude-2 | todo (after B2) | |
-| B3 | Claude-2 | todo | |
-| B4 | Claude-2 | todo | |
+| B1 | Claude-2 | ✅ merged | #1 |
+| B2 | Claude-2 | ✅ merged | #2 |
+| B5 | Claude-2 | ✅ merged | #3 |
+| B3 | Claude-2 | ✅ merged | #4 |
+| B4 | Claude-2 | ✅ merged | #5 |
 | F1 | Astra | todo | |
 | F2 | Astra | todo | |
 | F6 | Astra | todo (after F2) | |
@@ -28,4 +28,5 @@ _Last update: 09:50 IST_
 | F5 | Astra | todo | |
 
 ## Blockers / decisions
+- 10:15 Backend B1–B5 all merged (26 tests pass; Lead live smoke test OK: inject → detect/diagnose/schedule/dispatch, copilot walk, websocket). Added `/api/demo/reset` to the contract. Astra restarting from a local clone and owns F1–F6. Frontend is now the critical path.
 - 09:50 Contract v1.1 (additive only): business-impact fields, agent event loop and KPIs. New tasks B5 and F6. Pitch in docs/PITCH.md.

@@ -27,8 +27,8 @@
 ## 3-minute demo script
 1. **(0:00) Hook.** "$2.3M an hour. That's what a stopped automotive line costs." Show the HUD: $ at risk ticking.
 2. **(0:20) Twin.** Orbit the 3D factory: green/amber/red machines, live sensors, "fails in 18 min".
-3. **(0:45) The agent acts on its own.** Inject `HYD-LEAK` on the press. The feed shows detect → diagnose → ⚛️ re-optimised (saves $X) → dispatched Tech A. The rank badges reorder in the scene.
-4. **(1:20) AR repair.** Switch to the phone and **Enter AR**: the twin appears on the table. Start the guided repair. The copilot speaks, the lockout warning appears, the part glows. Ask a question ("what torque?") and get a sensor-aware answer. Finish the steps.
+3. **(0:45) The agent acts on its own.** Click **Reset demo**, then inject `SPINDLE-VIB` on the healthy CNC-01. The feed shows detect → diagnose → ⚛️ re-optimised (saves $X vs greedy) → technicians dispatched. The rank badges reorder in the scene and "$ at risk/hour" jumps.
+4. **(1:20) AR repair.** Open the **rank-1 machine** (the one a technician was just dispatched to, normally CONV-02). On the phone, tap **Enter AR**: the twin appears on the table. Start the guided repair. The copilot speaks, the lockout warning appears, the part glows. Ask "what's the vibration?" to get a live-sensor answer. Say done through the steps.
 5. **(2:20) Resolve.** The machine turns green, MTTR is recorded, the downtime-avoided counter rises, and the agent dispatches the next job automatically.
 6. **(2:40) Close.** "Detect, decide, dispatch, guide, resolve: one autonomous loop with the human in the right place. SpatialTwin."
 
