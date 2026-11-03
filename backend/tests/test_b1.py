@@ -3,7 +3,7 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
-from app.main import app, sim
+from app.main import agent, app, sim
 from app.simulator import FAULTS, Simulator
 
 MOCK = Path(__file__).resolve().parents[2] / "shared" / "mock" / "machines.json"
@@ -42,7 +42,7 @@ def test_prediction_from_trend():
 
 
 def test_endpoints():
-    sim.reset()
+    sim.reset(); agent.reset()
     c = TestClient(app)
     assert c.get("/api/health").json() == {"ok": True}
     assert len(c.get("/api/machines").json()) == 5
@@ -52,11 +52,11 @@ def test_endpoints():
     assert r.status_code == 200 and r.json()["fault"]["part"] == "hydraulic_line"
     assert c.post("/api/demo/inject-fault", json={"machine_id": "X", "code": "HYD-LEAK"}).status_code == 404
     assert c.post("/api/demo/inject-fault", json={"machine_id": "CNC-01", "code": "X"}).status_code == 400
-    sim.reset()
+    sim.reset(); agent.reset()
 
 
 def test_websocket_telemetry():
-    sim.reset()
+    sim.reset(); agent.reset()
     c = TestClient(app)
     with c.websocket_connect("/ws/telemetry") as ws:
         msg = ws.receive_json()

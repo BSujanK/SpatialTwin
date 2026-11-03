@@ -5,7 +5,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app import scheduler as sc
-from app.main import app, sim
+from app.main import agent, app, sim
 from app.simulator import Simulator
 
 
@@ -56,7 +56,7 @@ def test_deterministic_with_seed():
 
 
 def test_schedule_endpoints_and_auto_recompute():
-    sim.reset()
+    sim.reset(); agent.reset()
     c = TestClient(app)
     c.post("/api/schedule/recompute")
     before = c.get("/api/schedule").json()
@@ -65,7 +65,7 @@ def test_schedule_endpoints_and_auto_recompute():
     c.post("/api/demo/inject-fault", json={"machine_id": "CNC-01", "code": "SPINDLE-VIB"})
     after = c.get("/api/schedule").json()
     assert len(after["queue"]) == len(before["queue"]) + 1
-    sim.reset()
+    sim.reset(); agent.reset()
 
 
 def test_empty_when_all_ok():

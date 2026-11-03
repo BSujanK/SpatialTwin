@@ -11,33 +11,23 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from . import scheduler
+from .agent import Agent
 from .simulator import FAULTS, Simulator, now_iso
 
 sim = Simulator(speed=float(os.getenv("SIM_SPEED", "1")))
 
 
-schedule_state: dict = {"latest": scheduler.compute_schedule(sim.snapshot())}
+agent = Agent(sim)
 
 
 def recompute_schedule() -> dict:
-    schedule_state["latest"] = scheduler.compute_schedule(sim.snapshot())
-    return schedule_state["latest"]
+    """Manual re-run of the annealer (no agent events)."""
+    agent.schedule = scheduler.compute_schedule(sim.snapshot())
+    return agent.schedule
 
 
 def compute_kpis() -> dict:
-    ms = sim.snapshot()
-    bad = [m for m in ms if m["status"] != "ok"]
-    return {
-        "active_faults": len(bad),
-        "at_risk_usd_per_hour": sum(m["downtime_cost_per_hour"] for m in bad),
-        "repairs_completed": 0,
-        "avg_mttr_min": None,
-        "downtime_cost_avoided_usd": 0,
-        "technicians": [
-            {"name": "Tech A", "status": "idle", "machine_id": None},
-            {"name": "Tech B", "status": "idle", "machine_id": None},
-        ],
-    }
+    return agent.kpis()
 
 
 class Hub:
@@ -61,11 +51,19 @@ def telemetry_message() -> dict:
     return {"type": "telemetry", "ts": now_iso(), "machines": sim.snapshot(), "kpis": compute_kpis()}
 
 
+def _bind_loop() -> None:
+    """Push agent events to websocket clients as soon as they happen."""
+    loop = asyncio.get_running_loop()
+    agent.listeners.clear()
+    agent.add_listener(lambda ev: loop.call_soon_threadsafe(
+        lambda: loop.create_task(hub.broadcast({"type": "event", "event": ev}))))
+
+
 async def _loop() -> None:
+    _bind_loop()
     while True:
         await asyncio.sleep(1.0)
-        if sim.tick(1.0):  # any status change -> re-optimise
-            recompute_schedule()
+        agent.on_tick(sim.tick(1.0))
         await hub.broadcast(telemetry_message())
 
 
@@ -109,15 +107,34 @@ async def inject_fault(req: InjectRequest):
         raise HTTPException(404, f"unknown machine {req.machine_id}")
     if req.code not in FAULTS:
         raise HTTPException(400, f"unknown fault code {req.code}; use one of {sorted(FAULTS)}")
+    _bind_loop()
     m = sim.inject_fault(req.machine_id, req.code)
-    recompute_schedule()
+    agent.on_inject(req.machine_id)
     await hub.broadcast(telemetry_message())
     return m
 
 
+@app.get("/api/events")
+def events(limit: int = 50):
+    return agent.get_events(limit)
+
+
+@app.get("/api/kpis")
+def kpis():
+    return agent.kpis()
+
+
+@app.post("/api/demo/reset")
+def demo_reset():
+    """Extra (not in contract): restore the initial scenario for a fresh demo run."""
+    sim.reset()
+    agent.reset()
+    return {"ok": True}
+
+
 @app.get("/api/schedule")
 def get_schedule():
-    return schedule_state["latest"]
+    return agent.schedule
 
 
 @app.post("/api/schedule/recompute")
