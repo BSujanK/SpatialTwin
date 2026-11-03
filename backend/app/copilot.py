@@ -79,7 +79,7 @@ def llm_reply(kind: str, machine: dict, step: dict, total: int, message: str, hi
         msgs[-1]["content"] += " " + message
     else:
         msgs.append({"role": "user", "content": message})
-    return llm.chat(build_system_prompt(machine, step, total, kind), msgs, max_tokens=200)
+    return llm.chat(build_system_prompt(machine, step, total, kind), msgs, max_tokens=200, budget=llm.COPILOT_BUDGET_S)
 
 
 def handle(req: dict, machine: dict, proc: dict, on_guide, on_resolve) -> dict:
