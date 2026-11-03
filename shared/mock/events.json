@@ -1,0 +1,37 @@
+[
+  {
+    "id": 1,
+    "ts": "2026-11-03T09:05:02+05:30",
+    "kind": "detect",
+    "machine_id": "PUMP-03",
+    "message": "Bearing temperature 96 \u00b0C and vibration 11.3 mm/s exceed ISO 10816 limits."
+  },
+  {
+    "id": 2,
+    "ts": "2026-11-03T09:05:03+05:30",
+    "kind": "diagnose",
+    "machine_id": "PUMP-03",
+    "message": "Diagnosis: BRG-OVERHEAT. Predicted seizure in ~18 min."
+  },
+  {
+    "id": 3,
+    "ts": "2026-11-03T09:15:01+05:30",
+    "kind": "detect",
+    "machine_id": "PRESS-05",
+    "message": "Hydraulic pressure falling 4 bar/min."
+  },
+  {
+    "id": 4,
+    "ts": "2026-11-03T09:15:02+05:30",
+    "kind": "schedule",
+    "machine_id": null,
+    "message": "Re-optimized repair queue (QUBO annealing, 142 ms): PRESS-05 \u2192 PUMP-03 \u2192 CONV-02. Saves $5,550 vs greedy."
+  },
+  {
+    "id": 5,
+    "ts": "2026-11-03T09:15:02+05:30",
+    "kind": "dispatch",
+    "machine_id": "PRESS-05",
+    "message": "Dispatched Tech A with work order WO-1042 (HYD-LEAK, est. 25 min)."
+  }
+]

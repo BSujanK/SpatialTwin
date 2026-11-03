@@ -1,0 +1,37 @@
+# SpatialTwin: pitch and demo script (Lead-owned)
+
+## The problem (real, quantified)
+- Unplanned downtime costs the world's 500 largest companies about **$1.4 trillion a year** (~11% of revenue), up from $864B in 2019–20. Source: Siemens, *The True Cost of Downtime 2024*.
+- One hour of downtime at a large **automotive plant costs ~$2.3M** (more than $600 per second), roughly double the 2019 figure. Source: same report.
+- Factories are becoming **autonomous and lights-out**: fewer people on the floor, and each technician covers more machines. Experienced technicians are retiring faster than knowledge can be handed down.
+- So when something breaks, two questions decide the cost: **which machine first?** and **how fast can whoever's available fix it correctly?**
+
+## The solution: one closed autonomous loop
+**Detect → Diagnose → Prioritise → Dispatch → Guide → Resolve.** The agent runs the loop by itself, and the human only does the physical repair.
+1. **Live digital twin.** Sensor telemetry is mapped onto a 3D model of every machine, with predicted time to failure.
+2. **Quantum-inspired scheduler.** Repair ordering is formulated as a **QUBO** (the native problem format of quantum annealers) and solved by simulated annealing today. The objective is **USD of expected downtime loss**, not a severity guess. The same QUBO can run on quantum annealing hardware without being rewritten.
+3. **Agentic AR copilot.** It walks the technician through the procedure step by step, highlights the exact part in AR, speaks the instructions, enforces safety (lockout/tagout) and answers questions using live sensor context.
+4. **Impact HUD.** It shows dollars at risk per hour, downtime cost avoided and mean time to repair (MTTR), all live.
+
+## Business impact model (illustrative plant, numbers on screen)
+- 5 machines on one line, downtime cost of $3k–15k/hour each.
+- Optimised order vs a naive "worst health first" order: the screen shows `savings_usd` for each re-plan.
+- AR-guided work instructions: vendor case studies report **~25–40% lower repair time** (unverified marketing figures; quote the range, attributed, as "reported").
+- Pitch line: *"Each re-plan we just watched saved $5.5k of expected downtime on a single line. A plant has dozens of lines."*
+
+## Honesty guardrails (judges ask)
+- Sensors are **simulated** for the demo. In production they'd come from OPC UA / MQTT.
+- "Quantum-inspired" means classical simulated annealing on a QUBO. We don't claim to run on a quantum computer.
+- Dollar figures are illustrative per-machine rates. The method, not the numbers, is the product.
+
+## 3-minute demo script
+1. **(0:00) Hook.** "$2.3M an hour. That's what a stopped automotive line costs." Show the HUD: $ at risk ticking.
+2. **(0:20) Twin.** Orbit the 3D factory: green/amber/red machines, live sensors, "fails in 18 min".
+3. **(0:45) The agent acts on its own.** Inject `HYD-LEAK` on the press. The feed shows detect → diagnose → ⚛️ re-optimised (saves $X) → dispatched Tech A. The rank badges reorder in the scene.
+4. **(1:20) AR repair.** Switch to the phone and **Enter AR**: the twin appears on the table. Start the guided repair. The copilot speaks, the lockout warning appears, the part glows. Ask a question ("what torque?") and get a sensor-aware answer. Finish the steps.
+5. **(2:20) Resolve.** The machine turns green, MTTR is recorded, the downtime-avoided counter rises, and the agent dispatches the next job automatically.
+6. **(2:40) Close.** "Detect, decide, dispatch, guide, resolve: one autonomous loop with the human in the right place. SpatialTwin."
+
+## Sources
+- Siemens, The True Cost of Downtime 2024: https://assets.new.siemens.com/siemens/assets/api/uuid:1b43afb5-2d07-47f7-9eb7-893fe7d0bc59/TCOD-2024_original.pdf
+- AR repair-time claims (vendor, unverified): https://www.zoho.com/lens/how-to-measure-ar-remote-assistance-roi.html

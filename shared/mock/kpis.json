@@ -1,0 +1,19 @@
+{
+  "active_faults": 3,
+  "at_risk_usd_per_hour": 30000,
+  "repairs_completed": 0,
+  "avg_mttr_min": null,
+  "downtime_cost_avoided_usd": 5550,
+  "technicians": [
+    {
+      "name": "Tech A",
+      "status": "en_route",
+      "machine_id": "PRESS-05"
+    },
+    {
+      "name": "Tech B",
+      "status": "idle",
+      "machine_id": null
+    }
+  ]
+}

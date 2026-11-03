@@ -1,4 +1,4 @@
-# API contract (v1): backend ⇄ frontend
+# API contract (v1.1): backend ⇄ frontend
 
 The backend is FastAPI on `http://localhost:8000`. CORS allows all origins. All JSON uses snake_case.
 Example payloads live in `shared/mock/` and must stay valid against this document.
@@ -23,6 +23,8 @@ interface Machine {
     pressure_bar: number;
     rpm: number;
   };
+  downtime_cost_per_hour: number;   // USD lost per hour this machine is down (v1.1)
+  predicted_failure_min: number | null; // minutes until health hits 0 at the current trend; null if ok or improving (v1.1)
   fault: null | {
     code: string;             // e.g. "BRG-OVERHEAT"
     description: string;
@@ -44,9 +46,31 @@ interface Schedule {
   generated_at: string;       // ISO-8601
   method: "qubo-simulated-annealing";
   energy: number;             // final QUBO energy (lower = better)
-  baseline_cost: number;      // weighted downtime cost of the naive greedy order
-  optimized_cost: number;     // weighted downtime cost of the annealed order
+  baseline_cost: number;      // expected USD downtime loss of the naive greedy order (sort by health)
+  optimized_cost: number;     // expected USD downtime loss of the annealed order
+  savings_usd: number;        // baseline_cost - optimized_cost (v1.1)
   queue: ScheduleItem[];      // only machines with status != "ok"
+}
+// Expected loss per machine = downtime_cost_per_hour × (wait_min + est_repair_min) / 60
+//   × failure_risk, where failure_risk is higher when predicted_failure_min is small.
+// Two technicians work in parallel; wait_min is the sum of repair times queued ahead on that technician.
+
+// v1.1: the autonomous agent loop. Every decision the agent makes is logged as an event.
+interface AgentEvent {
+  id: number;                 // increasing
+  ts: string;                 // ISO-8601
+  kind: "detect" | "diagnose" | "schedule" | "dispatch" | "guide" | "resolve";
+  machine_id: string | null;
+  message: string;            // one human sentence, shown in the activity feed
+}
+
+interface Kpis {
+  active_faults: number;                // machines with status != "ok"
+  at_risk_usd_per_hour: number;         // sum of downtime_cost_per_hour over non-ok machines
+  repairs_completed: number;
+  avg_mttr_min: number | null;          // mean time from detect to resolve
+  downtime_cost_avoided_usd: number;    // running sum of schedule savings_usd at each re-optimization that changed the order
+  technicians: { name: string; status: "idle" | "en_route" | "repairing"; machine_id: string | null }[];
 }
 
 interface ProcedureStep {
@@ -80,7 +104,9 @@ interface CopilotResponse {
 | GET | `/api/health` | `{ "ok": true }` |
 | GET | `/api/machines` | `Machine[]` |
 | GET | `/api/machines/{id}` | `Machine` (404 if unknown) |
-| WS | `/ws/telemetry` | every 1 s: `{ "type": "telemetry", "ts": string, "machines": Machine[] }` |
+| WS | `/ws/telemetry` | every 1 s: `{ "type": "telemetry", "ts": string, "machines": Machine[], "kpis": Kpis }`. Also, immediately when an event happens: `{ "type": "event", "event": AgentEvent }` |
+| GET | `/api/events?limit=50` | `AgentEvent[]`, newest last (v1.1) |
+| GET | `/api/kpis` | `Kpis` (v1.1) |
 | GET | `/api/schedule` | `Schedule` (latest) |
 | POST | `/api/schedule/recompute` | `Schedule` (runs the annealer now) |
 | GET | `/api/procedures/{fault_code}` | `{ "fault_code": string, "title": string, "steps": ProcedureStep[] }` |
@@ -93,3 +119,13 @@ interface CopilotResponse {
 - `message` is "done", "next" or "ok": advance to `step_index + 1`. If that was the last step, set `done: true`, and the backend marks the machine `ok`, health 95.
 - Any other message is a question. Answer it about the **current** step and do not advance.
 - Every reply includes the step's `safety_warning` when it's non-null and the step was just entered.
+
+## Autonomous agent loop (v1.1)
+
+The backend runs this loop with no human input. Each arrow emits an `AgentEvent`:
+1. **detect**: a machine's status worsens (ok→warning, warning→fault), or a fault is injected.
+2. **diagnose**: map the fault to its code and procedure, and estimate `predicted_failure_min`.
+3. **schedule**: re-run the QUBO annealer and report the new order and `savings_usd`.
+4. **dispatch**: assign the top idle technician to the top queued machine, with a work order `WO-<n>`. That technician's status becomes `en_route`.
+5. **guide**: the first copilot "start" on that machine sets the technician to `repairing`.
+6. **resolve**: the last copilot step completes. The machine goes back to ok, the technician to idle, MTTR is recorded, and the agent dispatches the next item.
