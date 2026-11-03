@@ -15,7 +15,7 @@ export function setRankBadges(queue: ScheduleItem[]) { currentScene?.setRankBadg
 export function focusMachine(machineId: string | null) { currentScene?.focusMachine(machineId); } // F3b
 export function flashMachine(machineId: string) { currentScene?.flashMachine(machineId); } // F3b
 
-const colors: Record<Status, number> = { ok: 0x3ddc97, warning: 0xffd23f, fault: 0xff3b3b };
+const colors: Record<Status, number> = { ok: 0x55d6af, warning: 0xf0bc62, fault: 0xff6b76 };
 export function relevantSensors(machine: Machine): string {
   const s = machine.sensors;
   if (machine.type === 'press') return `${s.pressure_bar.toFixed(1)} bar · ${s.temperature_c.toFixed(1)} °C`;
@@ -46,8 +46,8 @@ export class FactoryScene {
 
   constructor(private host: HTMLElement, private onSelect: (id: string) => void) {
     currentScene = this;
-    this.scene.background = new THREE.Color(0x0b0b0c);
-    this.scene.fog = new THREE.Fog(0x0b0b0c, 25, 55);
+    this.scene.background = new THREE.Color(0x111c27);
+    this.scene.fog = new THREE.Fog(0x111c27, 25, 55);
     this.scene.add(this.twin);
     this.camera.position.set(9, 9.5, 12.5);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -64,23 +64,23 @@ export class FactoryScene {
     this.controls.minDistance = 8;
     this.controls.maxDistance = 30;
     this.controls.maxPolarAngle = Math.PI / 2.15;
-    this.scene.add(new THREE.HemisphereLight(0xe7e5e4, 0x2b2b2f, 2.5));
-    const sun = new THREE.DirectionalLight(0xe7e5e4, 3);
+    this.scene.add(new THREE.HemisphereLight(0xd9efff, 0x354251, 2.5));
+    const sun = new THREE.DirectionalLight(0xffe7cc, 3);
     sun.position.set(-4, 14, 8);
     sun.castShadow = true;
     sun.shadow.mapSize.set(2048, 2048);
     Object.assign(sun.shadow.camera, { left: -10, right: 10, top: 10, bottom: -10 });
     sun.shadow.bias = -0.001;
     this.scene.add(sun);
-    const floor = new THREE.Mesh(new THREE.BoxGeometry(14, 0.2, 10), new THREE.MeshStandardMaterial({ color: 0x161618, roughness: 0.95 }));
+    const floor = new THREE.Mesh(new THREE.BoxGeometry(14, 0.2, 10), new THREE.MeshStandardMaterial({ color: 0x253440, roughness: 0.95 }));
     floor.position.y = -0.12;
     floor.receiveShadow = true;
     this.twin.add(floor);
-    const grid = new THREE.GridHelper(14, 28, 0x2a2a2e, 0x1f1f22);
+    const grid = new THREE.GridHelper(14, 28, 0x42606a, 0x304550);
     grid.position.y = 0.005;
     grid.scale.z = 10 / 14;
     this.twin.add(grid);
-    const lane = new THREE.Mesh(new THREE.PlaneGeometry(12.8, 0.035), new THREE.MeshBasicMaterial({ color: 0x8a3a14 }));
+    const lane = new THREE.Mesh(new THREE.PlaneGeometry(12.8, 0.035), new THREE.MeshBasicMaterial({ color: 0xb39a58 }));
     lane.rotation.x = -Math.PI / 2;
     lane.position.set(0, 0.015, 0.1);
     this.twin.add(lane);

@@ -13,7 +13,7 @@ export class PartHighlighter {
 
   constructor(root: THREE.Group) {
     this.root = root;
-    const material = new THREE.MeshBasicMaterial({ color: 0xffffff, depthTest: false });
+    const material = new THREE.MeshBasicMaterial({ color: 0x22d3ee, depthTest: false });
     const tip = new THREE.Mesh(new THREE.ConeGeometry(0.13, 0.26, 12), material);
     tip.rotation.z = Math.PI;
     const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.32, 8), material);
@@ -32,8 +32,8 @@ export class PartHighlighter {
     this.original = target.material;
     const materials = Array.isArray(target.material) ? target.material : [target.material];
     this.glowing = materials.map(material => {
-      const clone = material instanceof THREE.MeshStandardMaterial ? material.clone() : new THREE.MeshStandardMaterial({ color: 0xff5f1f });
-      clone.emissive.setHex(0xff5f1f); // plasma orange, unmistakable against the graphite scene
+      const clone = material instanceof THREE.MeshStandardMaterial ? material.clone() : new THREE.MeshStandardMaterial({ color: 0x80e9c5 });
+      clone.emissive.setHex(0x22d3ee); // cyan, unmistakable against the grey/green scene
       clone.emissiveIntensity = 1.6;
       return clone;
     });
