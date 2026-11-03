@@ -22,7 +22,8 @@ _Last update: 10:05 IST_
 | B4 | Claude-2 | ✅ merged | #5 |
 | B7 | Claude-2 | ✅ merged (verified live on Qualcomm) | #6 |
 | B6 | Claude-2 | ✅ merged | #7 |
-| B8 | Claude-2 | todo (LLM reliability) | |
+| B8 | Claude-2 | ✅ merged | #11 |
+| B9 | Claude-2 | after F3 (inject realism, latency cap) | |
 | F1 | Astra | ✅ merged | #8 |
 | F2 | Astra | ✅ merged (follow-ups in F6) | #8 |
 | F6 | Astra | ✅ merged | #10 |

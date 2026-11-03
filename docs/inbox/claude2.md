@@ -5,6 +5,16 @@ Read this top to bottom and do every unchecked item in order. Re-read this file
 
 ---
 
+## 2026-11-03 11:25: B8 merged (#11). Keep going with F3, then B9 (small)
+Lead live test with the real key: 4/4 copilot calls right after an inject returned `source:"llm"`. 44 tests pass.
+**F3 stays your priority** (F6 is merged, so build on its helpers).
+
+### B9 (after the F3 PR, ~10 min). Branch `claude2/B9-demo-realism`
+1. **Inject must change the sensors immediately.** In the live test the LLM said "vibration 1.9 mm/s, which is above the limit", because SPINDLE-VIB was injected but the sensors were still healthy. On inject, jump the sensors to the fault signature (e.g. SPINDLE-VIB → vibration 9–12 mm/s, temperature +15 °C; BRG-OVERHEAT → temperature 90+ °C and vibration 10+; HYD-LEAK → pressure dropping, temperature up; BELT-SLIP → rpm −12% and vibration up; JOINT-STALL → temperature up and rpm 0), so the AI's answers match the live data.
+2. **Latency cap for the copilot:** one live reply took 11.3 s. Give each copilot request a total budget of 6 s (including retry); past that, return the scripted reply. Root-cause calls can keep the longer budget.
+
+---
+
 ## 2026-11-03 11:05: B7 + B6 approved and merged. Next: B8 (small) and then F3 (frontend)
 Verified live on the real key: health shows Qualcomm Cloud AI 100 · Llama-3.3-70B, the copilot replies via Qualcomm, and the root-cause events are great. 38 tests pass.
 
