@@ -5,6 +5,24 @@ Read this top to bottom and do every unchecked item in order. Re-read this file
 
 ---
 
+## 2026-11-03 12:15: One last task: README for the judges (docs only, done by 12:35)
+Judges will open the GitHub repo. For this task you may edit **`README.md` (root)** and create **`docs/ARCHITECTURE.md`**. No code changes (we're close to freeze). Branch `claude2/docs-readme`, one PR.
+
+**README.md** (replace the current one; keep it scannable, ~150 lines max):
+1. Title + one-liner + the screenshot `docs/img/dashboard.jpg`.
+2. **The problem** (from docs/PITCH.md): $1.4T/year unplanned downtime (Siemens True Cost of Downtime 2024), $2.3M/hour at a large automotive plant, and fewer technicians in autonomous factories. Cite the Siemens source link.
+3. **What it does**: the autonomous loop detect → diagnose → prioritise → dispatch → guide → resolve, as a mermaid flowchart.
+4. **Powered by Qualcomm Cloud AI 100**: the copilot and the root-cause analysis run on Llama-3.3-70B on Qualcomm Cloud AI 100 (Qualcomm AI Inference Suite, OpenAI-compatible API); the provider chain and fallback. Roadmap: the edge version on Dragonwing (Arduino UNO Q).
+5. **Quantum-inspired scheduler**: the QUBO formulation (copy the energy function from `backend/app/scheduler.py`'s docstring as math), simulated annealing, USD objective, and why it maps onto quantum annealers. Be honest: classical annealing.
+6. **AR guided repair**: WebXR hit-test placement, step-by-step copilot, part highlight, voice; screenshot `docs/img/guided-repair.jpg`.
+7. **Run it**: backend + `scripts/set-qualcomm-key.ps1` + frontend `npm run dev` / `npm run dev:https` for phone AR.
+8. **Built by a 3-agent team**: Lead (Claude Opus), Claude-2 (backend), Astra (GPT, frontend), coordinated through GitHub PRs, `AGENTS.md`, the API contract and `docs/inbox/`. This is a differentiator, so show a small table of who built what (from docs/STATUS.md).
+9. **Honesty notes**: simulated sensors, illustrative $ rates.
+
+**docs/ARCHITECTURE.md**: a mermaid component diagram (browser/phone ⇄ Vite proxy ⇄ FastAPI: simulator, agent loop, QUBO scheduler, copilot, LLM provider chain → Qualcomm Cloud AI 100) plus a one-paragraph description of each module.
+
+---
+
 ## 2026-11-03 12:07: F3b + B9 merged (#14, #15). You're done. Thank you!
 The Lead resolved a small main.ts conflict with F4. Verified live: camera focus + cyan highlight, and the injected sensors match the fault.
 **Code freeze is at 12:40.** No new features. Only fix something if the Lead asks.
