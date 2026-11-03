@@ -7,7 +7,11 @@ const FALLBACK_CODES = ['BRG-OVERHEAT', 'BELT-SLIP', 'HYD-LEAK', 'SPINDLE-VIB', 
 
 const styles = `
 .demo-controls{position:absolute;left:28px;top:112px;z-index:40;display:grid;grid-template-columns:1fr 1fr;gap:6px;width:min(300px,calc(100vw - 28px));padding:10px;border:1px solid rgba(148,163,184,.22);border-radius:10px;background:rgba(10,18,26,.92);color:#cbd5e1;font:500 11px/1.3 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
-.demo-controls .demo-title{grid-column:1/-1;color:#2dd4bf;letter-spacing:.14em;font-size:10px}
+.demo-controls .demo-title{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0!important;border:0!important;background:none!important;color:#2dd4bf!important;letter-spacing:.14em;font-size:10px!important;text-align:left;cursor:pointer}
+.demo-controls .demo-title .chev{display:inline-block;transition:transform .2s ease;font-size:12px}
+.demo-controls.collapsed{width:auto;grid-template-columns:auto;padding:8px 12px}
+.demo-controls.collapsed > :not(.demo-title){display:none}
+.demo-controls.collapsed .demo-title .chev{transform:rotate(-90deg)}
 .demo-controls select,.demo-controls button{min-width:0;padding:7px 8px;border:1px solid rgba(148,163,184,.3);border-radius:6px;background:#0f1b27;color:inherit;font:inherit}
 .demo-controls button{cursor:pointer}
 .demo-controls button.primary{border-color:#2dd4bf;background:#2dd4bf;color:#07121a;font-weight:700}
@@ -31,9 +35,21 @@ export function mountDemoControls(container: HTMLElement): void {
   const panel = document.createElement('section');
   panel.className = 'demo-controls';
   panel.setAttribute('aria-label', 'Demo controls');
-  const title = document.createElement('span');
+  const title = document.createElement('button');
+  title.type = 'button';
   title.className = 'demo-title';
-  title.textContent = 'DEMO CONTROLS';
+  title.innerHTML = '<span>DEMO CONTROLS</span><span class="chev" aria-hidden="true">▾</span>';
+  // Collapsible: starts collapsed so the twin stays clear; the choice is remembered.
+  const KEY = 'spatialtwin.demoControls.collapsed';
+  const setCollapsed = (collapsed: boolean) => {
+    panel.classList.toggle('collapsed', collapsed);
+    title.setAttribute('aria-expanded', String(!collapsed));
+    try { localStorage.setItem(KEY, collapsed ? '1' : '0'); } catch { /* private mode */ }
+  };
+  let initial = true;
+  try { initial = localStorage.getItem(KEY) !== '0'; } catch { /* private mode */ }
+  setCollapsed(initial);
+  title.addEventListener('click', () => setCollapsed(!panel.classList.contains('collapsed')));
   const fault = document.createElement('select');
   fault.setAttribute('aria-label', 'Fault code');
   fault.append(...FALLBACK_CODES.map(code => option(code)));
