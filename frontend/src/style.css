@@ -1,5 +1,11 @@
 :root { font-family: 'Segoe UI', system-ui, sans-serif; color: #e5eef3; background: #0c121a; font-synthesis: none; --muted: #8496a6; --line: #273440; --ok: #55d6af; --warning: #f0bc62; --fault: #ff6b76; }
 * { box-sizing: border-box; }
+* { scrollbar-width: thin; scrollbar-color: #48616f #101922; }
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-track { background: #101922; }
+*::-webkit-scrollbar-thumb { background: #48616f; border: 2px solid #101922; border-radius: 8px; }
+*::-webkit-scrollbar-thumb:hover { background: #6a8797; }
+*::-webkit-scrollbar-corner { background: #101922; }
 html, body { margin: 0; width: 100%; max-width: 100%; overflow-x: hidden; }
 #app { width: 100%; min-width: 0; }
 button, a { -webkit-tap-highlight-color: transparent; }
@@ -126,6 +132,8 @@ button.event-entry:hover { background: #1b2a35; }
 .schedule-recompute { white-space: nowrap; padding: 8px; font-size: 10px; }
 .schedule-recompute:disabled { opacity: .55; cursor: wait; }
 .schedule-savings { font-size: 11px; line-height: 1.5; color: #a1e9d2; margin: 12px 0 8px; }
+.schedule-saved { display: block; color: var(--ok); font-size: 28px; line-height: 1.2; font-weight: 650; letter-spacing: -.7px; font-variant-numeric: tabular-nums; }
+.schedule-comparison { display: block; margin-top: 5px; color: #a8bdc9; font-size: 10px; line-height: 1.5; }
 .schedule-queue { list-style: none; padding: 0; margin: 0; max-height: 260px; overflow-y: auto; }
 .schedule-item { display: flex; width: 100%; gap: 9px; text-align: left; border: 1px solid transparent; border-bottom-color: var(--line); border-radius: 4px; background: transparent; padding: 10px 6px; }
 .schedule-item[aria-pressed=true] { background: #20303c; border-color: #405362; }
