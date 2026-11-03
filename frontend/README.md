@@ -17,6 +17,8 @@ npm test
 npm run preview
 ```
 
+With the backend and live Vite server running, `npm run test:live` checks REST plus two successive websocket telemetry/KPI frames through the actual frontend subscription. To use a different frontend origin: `npm run test:live -- http://localhost:5174`.
+
 Drag the factory to orbit, scroll to zoom, and click a machine, floating label, or asset row to inspect live readings. The asset list also supports keyboard selection. Reset view restores the camera. If WebGL is unavailable the asset list and telemetry remain usable.
 
 The live data layer reads `/api/machines`, then consumes `/ws/telemetry`, including v1.1 event/KPI frames. It reconnects with bounded exponential backoff and detects stalled telemetry; the connection badge identifies disconnected data. Mock mode is explicit and never silently replaces a failed live connection.

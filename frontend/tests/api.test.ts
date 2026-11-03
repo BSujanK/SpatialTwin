@@ -69,3 +69,37 @@ test('live stream survives malformed frames, ignores stale REST, reconnects and 
   for (const timer of timers.values()) timer.callback();
   assert.equal(FakeSocket.instances.length, count, 'cleanup must prevent new connections');
 });
+
+test('mock subscription starts from shared fixtures and ticks without network access', async t => {
+  const previousMode = process.env.VITE_USE_MOCK;
+  process.env.VITE_USE_MOCK = 'true';
+  let tick: (() => void) | undefined;
+  let cleared = false;
+  let cleanup = () => {};
+  Object.defineProperty(globalThis, 'window', { configurable: true, value: {
+    setInterval(callback: () => void, delay: number) { assert.equal(delay, 1000); tick = callback; return 1; },
+    clearInterval() { cleared = true; },
+  } });
+  t.after(() => {
+    cleanup();
+    Reflect.deleteProperty(globalThis, 'window');
+    if (previousMode === undefined) delete process.env.VITE_USE_MOCK;
+    else process.env.VITE_USE_MOCK = previousMode;
+  });
+  const fetchMock = t.mock.method(globalThis, 'fetch', () => { throw new Error('Mock mode must not fetch'); });
+  const vite = await createServer({ server: { middlewareMode: true, watch: null }, appType: 'custom' });
+  t.after(() => vite.close());
+  const api = await vite.ssrLoadModule('/src/api.ts');
+  const snapshots: unknown[] = [];
+  cleanup = api.subscribeTelemetry({
+    connection: (state: string) => assert.equal(state, 'mock'),
+    machines: (snapshot: unknown) => snapshots.push(snapshot),
+    message: (message: { kpis: unknown }) => assert.deepEqual(message.kpis, kpis),
+  });
+  assert.deepEqual(snapshots[0], machines);
+  tick?.();
+  assert.equal(snapshots.length, 2);
+  assert.equal(fetchMock.mock.callCount(), 0);
+  cleanup();
+  assert.equal(cleared, true);
+});

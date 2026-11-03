@@ -74,8 +74,8 @@ export function subscribeTelemetry(handlers: {
     };
     active.onerror = () => active.close();
     active.onclose = () => {
-      window.clearTimeout(watchdog);
       if (stopped) return;
+      window.clearTimeout(watchdog);
       handlers.connection('reconnecting');
       retryTimer = window.setTimeout(connect, Math.min(1000 * 2 ** attempt++, 10000));
     };
