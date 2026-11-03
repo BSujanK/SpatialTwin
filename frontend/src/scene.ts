@@ -23,6 +23,7 @@ export class FactoryScene {
   private resize: ResizeObserver;
   private selected: string | null = null;
   private pointerStart = new THREE.Vector2();
+  onXRFrame?: (frame: XRFrame | undefined) => void; // F5
 
   constructor(private host: HTMLElement, private onSelect: (id: string) => void) {
     this.scene.background = new THREE.Color(0x111c27);
@@ -74,7 +75,8 @@ export class FactoryScene {
     this.resize.observe(host);
     this.renderer.domElement.addEventListener('pointerdown', this.pointerDown);
     this.renderer.domElement.addEventListener('pointerup', this.pointerUp);
-    this.renderer.setAnimationLoop(time => {
+    this.renderer.setAnimationLoop((time, frame) => { // F5: WebXR passes the XRFrame
+      this.onXRFrame?.(frame); // F5
       this.controls.update();
       for (const item of this.models.values()) {
         item.ring.material.opacity = item.machine.status === 'fault' ? 0.55 + Math.sin(time / 350) * 0.25 : 0.65;
