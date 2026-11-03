@@ -1,5 +1,7 @@
 # SpatialTwin frontend
 
+The repair schedule appears at the top of the sidebar. Each ranked item shows its machine, reason, repair minutes and technician; clicking selects the machine and its numbered scene badge. Savings use `savings_usd / baseline_cost` (zero when the baseline is zero). Re-optimize calls `POST /api/schedule/recompute`; mock mode reloads the shared schedule fixture. The subscription refreshes the queue on every `schedule`/`resolve` event and after websocket reconnects. Failed recomputations retain the last known queue and show a retry message.
+
 Vite + TypeScript + three.js, with no UI framework. Requires Node.js 22.12+ (tested on Node 24).
 
 ```sh

@@ -27,6 +27,9 @@ export const getKpis = (signal?: AbortSignal): Promise<Kpis> => useMock
 export const getSchedule = (signal?: AbortSignal): Promise<Schedule> => useMock
   ? Promise.resolve(structuredClone(scheduleFixture) as Schedule)
   : request('/api/schedule', { signal });
+export const recomputeSchedule = (): Promise<Schedule> => useMock
+  ? getSchedule()
+  : request('/api/schedule/recompute', { method: 'POST' });
 
 export function subscribeTelemetry(handlers: {
   machines: (machines: Machine[], ts: string) => void;

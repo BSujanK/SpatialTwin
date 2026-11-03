@@ -5,6 +5,7 @@ import { CopilotPanel } from './copilot'; // F3
 import { getHealth } from './copilot-api'; // F3
 import { aiChipText } from './copilot-logic'; // F3
 import { ImpactView } from './impact';
+import { SchedulePanel } from './schedule';
 import type { Machine } from './types';
 import { setupAR } from './xr'; // F5
 import { mountDemoControls } from './demo-controls'; // F5
@@ -24,6 +25,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     </section>
     <section id="agent-feed" class="agent-feed" aria-label="Agent activity"></section>
     <aside class="sidebar" aria-label="Machine telemetry">
+      <section id="schedule-panel" class="schedule-panel" aria-label="Optimized repair schedule"></section>
       <div class="panel-heading"><span class="eyebrow">PRODUCTION LINE</span><span id="asset-count" class="count">0 ASSETS</span></div>
       <div id="machine-list" class="machine-list"></div>
       <section class="details" aria-label="Selected machine">
@@ -46,6 +48,7 @@ let selectedId: string | null = null;
 let factory: FactoryScene | undefined;
 const rows = new Map<string, HTMLButtonElement>();
 const impact = new ImpactView(el('impact-hud'), el('agent-feed'), selectMachine);
+const schedulePanel = new SchedulePanel(el('schedule-panel'), selectMachine, schedule => factory?.setRankBadges(schedule.queue));
 const copilot = new CopilotPanel(el('copilot-panel'), highlightPart); // F3
 
 // F3: "AI: <provider>" chip in the HUD, from GET /api/health.
@@ -64,6 +67,7 @@ const aiTimer = window.setInterval(refreshAi, 20000);
 
 function selectMachine(id: string) {
   selectedId = id;
+  schedulePanel.select(id);
   factory?.select(id);
   renderDetails();
 }
@@ -130,10 +134,11 @@ const unsubscribe = subscribeTelemetry({
   },
   kpis: kpis => impact.updateKpis(kpis),
   events: events => impact.updateEvents(events),
-  schedule: schedule => factory?.setRankBadges(schedule.queue),
+  schedule: schedule => schedulePanel.setSchedule(schedule),
   impactError: message => impact.error(message),
   machines(next, ts) {
     machines = next;
+    schedulePanel.setMachines(next);
     if (factory) el('empty-state').hidden = machines.length > 0;
     el('asset-count').textContent = `${machines.length} ASSETS`;
     el('last-update').textContent = `Updated ${new Date(ts).toLocaleTimeString()}`;
@@ -165,6 +170,6 @@ const unsubscribe = subscribeTelemetry({
   },
 });
 
-const dispose = () => { window.clearInterval(aiTimer); unsubscribe(); impact.dispose(); factory?.dispose(); window.removeEventListener('pagehide', dispose); };
+const dispose = () => { window.clearInterval(aiTimer); unsubscribe(); impact.dispose(); schedulePanel.dispose(); factory?.dispose(); window.removeEventListener('pagehide', dispose); };
 if (import.meta.hot) import.meta.hot.dispose(dispose);
 window.addEventListener('pagehide', dispose, { once: true });

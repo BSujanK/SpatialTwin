@@ -119,6 +119,24 @@ button.event-entry:hover { background: #1b2a35; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
 
 /* F3: repair copilot panel + AI chip */
+/* F4: bounded schedule inside the existing sidebar. */
+.schedule-panel { border-bottom: 1px solid var(--line); padding-bottom: 16px; margin-bottom: 20px; }
+.schedule-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.schedule-heading h2 { font-size: 18px; margin-top: 4px; }
+.schedule-recompute { white-space: nowrap; padding: 8px; font-size: 10px; }
+.schedule-recompute:disabled { opacity: .55; cursor: wait; }
+.schedule-savings { font-size: 11px; line-height: 1.5; color: #a1e9d2; margin: 12px 0 8px; }
+.schedule-queue { list-style: none; padding: 0; margin: 0; max-height: 260px; overflow-y: auto; }
+.schedule-item { display: flex; width: 100%; gap: 9px; text-align: left; border: 1px solid transparent; border-bottom-color: var(--line); border-radius: 4px; background: transparent; padding: 10px 6px; }
+.schedule-item[aria-pressed=true] { background: #20303c; border-color: #405362; }
+.schedule-rank { display: grid; place-items: center; width: 23px; height: 23px; flex: none; background: #29473f; color: #b5ecda; border-radius: 50%; font-size: 11px; font-weight: 600; }
+.schedule-content { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.schedule-content strong { font-size: 12px; font-weight: 600; }
+.schedule-reason { font-size: 10px; line-height: 1.45; color: #b5c5cf; overflow-wrap: anywhere; }
+.schedule-content small, .schedule-meta { font-size: 9px; color: var(--muted); }
+.schedule-meta { margin-top: 10px; }
+.schedule-error { font-size: 11px; color: var(--warning); line-height: 1.5; margin-bottom: 8px; }
+.schedule-empty { font-size: 11px; color: var(--muted); padding: 10px 0; }
 .impact-hud { position: relative; }
 .ai-chip { position: absolute; top: 8px; right: 26px; padding: 3px 9px; border: 1px solid #38434b; border-radius: 999px; background: #0f1b27; color: #9fb2c2; font-size: 10px; letter-spacing: .06em; }
 .ai-chip[data-provider="qualcomm"] { border-color: #ac9cff; color: #d3c9ff; background: #29213c99; }
