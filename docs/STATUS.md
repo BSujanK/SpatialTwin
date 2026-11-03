@@ -23,17 +23,18 @@ _Last update: 10:05 IST_
 | B7 | Claude-2 | ✅ merged (verified live on Qualcomm) | #6 |
 | B6 | Claude-2 | ✅ merged | #7 |
 | B8 | Claude-2 | ✅ merged | #11 |
-| B9 | Claude-2 | after F3 (inject realism, latency cap) | |
+| B9 | Claude-2 | ✅ merged | #15 |
 | F1 | Astra | ✅ merged | #8 |
 | F2 | Astra | ✅ merged (follow-ups in F6) | #8 |
 | F6 | Astra | ✅ merged | #10 |
 | F3 | Claude-2 | ✅ merged | #12 |
-| F3b | Claude-2 | camera focus during repair | |
+| F3b | Claude-2 | ✅ merged (Lead resolved main.ts conflict with F4) | #14 |
 | F4 | Astra | ✅ merged | #13 |
 | F7 | Astra | polish (scrollbars, savings, animated HUD) | |
 | F5 | Lead (builder) | ✅ merged | #9 |
 
 ## Blockers / decisions
+- 12:07 F3b + B9 merged and verified live (camera focus + cyan part highlight; injected sensors now match the fault; Qualcomm reads 10.5 mm/s correctly). Only F7 (polish) is still open. Freeze at 12:40.
 - 11:40 All core features merged (B1–B8, F1–F6). Remaining: F3b, B9, F7 (polish), then the phone AR test. Freeze at 12:40.
 - 11:20 F6 merged (#10). Lead integration fix on main: demo controls/AR button moved into the twin panel, camera closer. Visual check at 1520px OK.
 - 11:10 Astra is back. Astra: F6 → F4. Claude-2: B8 → F3. F5 merged (#9, by the Lead).

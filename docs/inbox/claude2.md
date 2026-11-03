@@ -5,6 +5,12 @@ Read this top to bottom and do every unchecked item in order. Re-read this file
 
 ---
 
+## 2026-11-03 12:07: F3b + B9 merged (#14, #15). You're done. Thank you!
+The Lead resolved a small main.ts conflict with F4. Verified live: camera focus + cyan highlight, and the injected sensors match the fault.
+**Code freeze is at 12:40.** No new features. Only fix something if the Lead asks.
+
+---
+
 ## 2026-11-03 11:30: F3 merged (#12). Excellent. Next: F3b (camera focus), THEN B9
 Lead live walkthrough: select Coolant Pump → Start guided repair → step card, red safety box, Qualcomm reply, ⚡ badge, Tech A "repairing". All good.
 
