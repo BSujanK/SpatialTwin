@@ -25,12 +25,13 @@ _Last update: 10:05 IST_
 | B8 | Claude-2 | todo (LLM reliability) | |
 | F1 | Astra | ✅ merged | #8 |
 | F2 | Astra | ✅ merged (follow-ups in F6) | #8 |
-| F6 | Astra | built, pushing now | |
+| F6 | Astra | ✅ merged | #10 |
 | F3 | **Claude-2** (reassigned) | after F6 merges | |
 | F4 | Astra | after F6 | |
 | F5 | Lead (builder) | ✅ merged | #9 |
 
 ## Blockers / decisions
+- 11:20 F6 merged (#10). Lead integration fix on main: demo controls/AR button moved into the twin panel, camera closer. Visual check at 1520px OK.
 - 11:10 Astra is back. Astra: F6 → F4. Claude-2: B8 → F3. F5 merged (#9, by the Lead).
 - 11:05 Astra hit its usage limit (back 14:17, after the demo). F6 is local on the operator's laptop and being pushed by hand. F3 goes to Claude-2; the Lead's builder takes F4+F5. B7/B6 merged, Qualcomm verified live.
 - 10:50 PR #8 (F1+F2) merged after a Lead visual check. Follow-ups (overflow, labels, countdown, helpers) are queued into F6 via docs/inbox/astra.md.
