@@ -32,26 +32,31 @@ FAULTS: dict[str, dict] = {
         "description": "Drive-end bearing overheating, vibration above ISO 10816 limit",
         "part": "bearing", "start_health": 40.0, "ttf_min": 18.0,
         "drift": {"temperature_c": 0.10, "vibration_mm_s": 0.012},
+        "signature": {"temperature_c": ("at_least", 90.0, 96.0), "vibration_mm_s": ("at_least", 10.0, 12.0)},
     },
     "BELT-SLIP": {
         "description": "Belt slipping: drive speed 12% below setpoint",
         "part": "belt", "start_health": 62.0, "ttf_min": 95.0,
         "drift": {"vibration_mm_s": 0.005, "rpm": -0.05},
+        "signature": {"rpm": ("scale", 0.88, 0.88), "vibration_mm_s": ("add_at_least", 3.0, 4.5)},
     },
     "HYD-LEAK": {
         "description": "Hydraulic pressure dropping 4 bar/min: suspected line leak",
         "part": "hydraulic_line", "start_health": 38.0, "ttf_min": 40.0,
         "drift": {"pressure_bar": -0.067, "temperature_c": 0.02},
+        "signature": {"pressure_bar": ("scale", 0.80, 0.88), "temperature_c": ("add", 8.0, 12.0)},
     },
     "SPINDLE-VIB": {
         "description": "Spindle vibration above limit: worn spindle bearings or imbalance",
         "part": "spindle", "start_health": 55.0, "ttf_min": 30.0,
         "drift": {"vibration_mm_s": 0.02, "temperature_c": 0.05},
+        "signature": {"vibration_mm_s": ("at_least", 9.0, 12.0), "temperature_c": ("add", 14.0, 17.0)},
     },
     "JOINT-STALL": {
         "description": "Arm joint stalling under load: motor current spikes, positioning errors",
         "part": "arm_joint", "start_health": 50.0, "ttf_min": 25.0,
         "drift": {"temperature_c": 0.07, "vibration_mm_s": 0.015},
+        "signature": {"temperature_c": ("add", 14.0, 17.0), "rpm": ("scale", 0.0, 0.0)},
     },
 }
 
@@ -168,7 +173,30 @@ class Simulator:
             self._rate[machine_id] = m["health"] / spec["ttf_min"]
             self._hist[machine_id].clear()
             m["predicted_failure_min"] = int(round(spec["ttf_min"]))
+            self._apply_signature(machine_id, spec["signature"])
             return copy.deepcopy(m)
+
+    def _apply_signature(self, machine_id: str, signature: dict) -> None:
+        """Jump the sensors to the fault signature right away (relative to the healthy means, so
+        injecting twice does not compound), so live readings and AI answers match the fault."""
+        healthy, base = self._healthy[machine_id], self._base[machine_id]
+        for sensor, (kind, lo, hi) in signature.items():
+            x = self.rng.uniform(lo, hi)
+            h = healthy[sensor]
+            if kind == "at_least":
+                value = max(h, x)
+            elif kind == "add":
+                value = h + x
+            elif kind == "scale":
+                value = h * x
+            else:  # add_at_least: healthy + lo, but never below hi
+                value = max(h + lo, hi)
+            if kind != "scale":
+                value = max(value, base[sensor])  # a signature never makes a worse reading better
+            else:
+                value = min(value, base[sensor])  # ...and a falling reading never rises
+            base[sensor] = value
+            self.machines[machine_id]["sensors"][sensor] = int(round(value)) if sensor == "rpm" else round(value, 1)
 
     def resolve(self, machine_id: str) -> dict:
         """Repair finished: machine goes back to ok, health 95."""

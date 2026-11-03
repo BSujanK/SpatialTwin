@@ -31,6 +31,8 @@ DEFAULT_QUALCOMM_MODEL = "Llama-3.3-70B"
 DEFAULT_ANTHROPIC_MODEL = "claude-haiku-5-5"
 TIMEOUT_S = 8.0
 RETRY_DELAY_S = 0.5
+MIN_RETRY_BUDGET_S = 1.5  # only retry if at least this much of the budget remains after the delay
+COPILOT_BUDGET_S = 6.0   # total time (including a retry) a copilot reply may take before the scripted reply is used
 log = logging.getLogger("spatialtwin.llm")
 COOLDOWN_S = 30.0 # after a provider fails, skip it for a while so the demo isn't slowed by timeouts
 
@@ -103,7 +105,12 @@ def _clean(text: str) -> str:
     return _THINK.sub("", text or "").strip()
 
 
-def _qualcomm_http(system: str, messages: list[dict], max_tokens: int) -> Optional[str]:
+def _remaining(deadline: Optional[float]) -> float:
+    """Seconds left before `deadline` (monotonic), capped by the per-call timeout."""
+    return TIMEOUT_S if deadline is None else min(TIMEOUT_S, deadline - time.monotonic())
+
+
+def _qualcomm_http(system: str, messages: list[dict], max_tokens: int, deadline: Optional[float] = None) -> Optional[str]:
     body = {
         "model": qualcomm_model(),
         "messages": [{"role": "system", "content": system}] + messages,
@@ -112,10 +119,15 @@ def _qualcomm_http(system: str, messages: list[dict], max_tokens: int) -> Option
         "stream": False,
     }
     headers = {"Authorization": f"Bearer {os.getenv('QUALCOMM_API_KEY')}", "Content-Type": "application/json"}
-    with httpx.Client(transport=_transport, timeout=TIMEOUT_S) as c:
+    with httpx.Client(transport=_transport) as c:
         for attempt in (1, 2):
-            r = c.post(f"{_endpoint()}/chat/completions", json=body, headers=headers)
+            budget = _remaining(deadline)
+            if budget <= 0:
+                raise httpx.ReadTimeout("latency budget used up")
+            r = c.post(f"{_endpoint()}/chat/completions", json=body, headers=headers, timeout=budget)
             if attempt == 1 and (r.status_code == 429 or r.status_code >= 500):
+                if _remaining(deadline) < RETRY_DELAY_S + MIN_RETRY_BUDGET_S:  # no time left for a useful retry
+                    r.raise_for_status()
                 log.info("qualcomm HTTP %s, retrying once in %.1fs", r.status_code, RETRY_DELAY_S)
                 time.sleep(RETRY_DELAY_S)
                 continue
@@ -123,11 +135,11 @@ def _qualcomm_http(system: str, messages: list[dict], max_tokens: int) -> Option
             return _clean(r.json()["choices"][0]["message"]["content"])
 
 
-def _qualcomm_sdk(system: str, messages: list[dict], max_tokens: int) -> Optional[str]:
+def _qualcomm_sdk(system: str, messages: list[dict], max_tokens: int, deadline: Optional[float] = None) -> Optional[str]:
     """Fallback: Qualcomm's python imagine SDK (optional dependency)."""
     from imagine import ImagineClient  # type: ignore
 
-    client = ImagineClient(endpoint=_endpoint(), api_key=os.getenv("QUALCOMM_API_KEY"), timeout=TIMEOUT_S)
+    client = ImagineClient(endpoint=_endpoint(), api_key=os.getenv("QUALCOMM_API_KEY"), timeout=max(0.5, _remaining(deadline)))
     resp = client.chat(
         messages=[{"role": "system", "content": system}] + messages,
         model=qualcomm_model(), max_tokens=max_tokens, temperature=0.3,
@@ -138,20 +150,25 @@ def _qualcomm_sdk(system: str, messages: list[dict], max_tokens: int) -> Optiona
     return _clean(text)
 
 
-def _qualcomm(system: str, messages: list[dict], max_tokens: int) -> Optional[str]:
+def _qualcomm(system: str, messages: list[dict], max_tokens: int, deadline: Optional[float] = None) -> Optional[str]:
     try:
-        return _qualcomm_http(system, messages, max_tokens)
+        return _qualcomm_http(system, messages, max_tokens, deadline)
     except Exception as http_err:
         try:
-            return _qualcomm_sdk(system, messages, max_tokens)
+            if deadline is not None and _remaining(deadline) <= 0:
+                raise http_err
+            return _qualcomm_sdk(system, messages, max_tokens, deadline)
         except Exception:
             raise http_err  # report the real HTTP failure, not a missing-SDK ImportError
 
 
-def _anthropic(system: str, messages: list[dict], max_tokens: int) -> Optional[str]:
+def _anthropic(system: str, messages: list[dict], max_tokens: int, deadline: Optional[float] = None) -> Optional[str]:
     import anthropic
 
-    client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"), timeout=TIMEOUT_S, max_retries=0)
+    budget = _remaining(deadline)
+    if budget <= 0:
+        raise httpx.ReadTimeout("latency budget used up")
+    client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"), timeout=budget, max_retries=0)
     resp = client.messages.create(model=anthropic_model(), max_tokens=max_tokens, system=system, messages=messages)
     return "".join(getattr(b, "text", "") for b in resp.content).strip()
 
@@ -166,16 +183,21 @@ def _why(e: Exception) -> str:
     return type(e).__name__
 
 
-def chat(system: str, messages: list[dict], max_tokens: int = 200, background: bool = False) -> Optional[tuple[str, str]]:
+def chat(system: str, messages: list[dict], max_tokens: int = 200, background: bool = False,
+         budget: Optional[float] = None) -> Optional[tuple[str, str]]:
     """Try each configured provider in order. Returns (text, engine_label) or None.
 
     Only connection errors and timeouts from a foreground (copilot) call put a provider on the 30 s
     skip list. HTTP errors and any background failure never disable a provider.
     """
     kind = "background" if background else "copilot"
+    deadline = None if budget is None else time.monotonic() + budget  # total budget across providers and retries
     for name in providers():
+        if deadline is not None and deadline - time.monotonic() <= 0:
+            log.info("%s call: latency budget (%.1fs) used up, using the scripted reply", kind, budget)
+            break
         try:
-            text = _FUNCS[name](system, messages, max_tokens)
+            text = _FUNCS[name](system, messages, max_tokens, deadline)
             if text:
                 log.info("%s call answered by %s", kind, name)
                 return text, engine_label(name)
