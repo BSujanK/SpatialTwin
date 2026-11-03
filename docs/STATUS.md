@@ -22,14 +22,15 @@ _Last update: 10:05 IST_
 | B4 | Claude-2 | ✅ merged | #5 |
 | B7 | Claude-2 | todo, TOP PRIORITY (Qualcomm Cloud AI 100) | |
 | B6 | Claude-2 | todo (after B7) | |
-| F1 | Astra | todo | |
-| F2 | Astra | todo | |
+| F1 | Astra | ✅ merged | #8 |
+| F2 | Astra | ✅ merged (follow-ups in F6) | #8 |
 | F6 | Astra | todo (after F2) | |
 | F3 | Astra | todo | |
 | F4 | Astra | todo | |
 | F5 | Astra | todo | |
 
 ## Blockers / decisions
+- 10:50 PR #8 (F1+F2) merged after a Lead visual check. Follow-ups (overflow, labels, countdown, helpers) are queued into F6 via docs/inbox/astra.md.
 - 10:15 **Hackathon rule: must use a Qualcomm kit.** We have the Cloud AI Playground key, so the AI brain (copilot + root-cause analysis) runs on Qualcomm Cloud AI 100. Contract v1.2 (additive). UNO Q edge node is roadmap only (no board).
 - 10:05 Backend B1–B5 all merged (26 tests pass; Lead live smoke test OK: inject → detect/diagnose/schedule/dispatch, copilot walk, websocket). Added `/api/demo/reset` to the contract. Astra restarting from a local clone and owns F1–F6. Frontend is now the critical path. The frontend must proxy /api and /ws through Vite, so the phone in AR gets one HTTPS origin.
 - 09:50 Contract v1.1 (additive only): business-impact fields, agent event loop and KPIs. New tasks B5 and F6. Pitch in docs/PITCH.md.
