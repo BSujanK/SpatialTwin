@@ -33,7 +33,7 @@ _Last update: 10:05 IST_
 | F7 | Astra | ✅ merged | #16 |
 | F5 | Lead (builder) | ✅ merged | #9 |
 
-## Phase 2: Autonomous control (after the demo)
+## Phase 2: Autonomous control. Present at 14:15 (PRs 13:40, freeze 14:00)
 | Task | Owner | State |
 |---|---|---|
 | L5 design + contract v1.3 + mocks | Lead | ✅ |
