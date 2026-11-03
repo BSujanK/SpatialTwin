@@ -16,6 +16,7 @@ test('live stream survives malformed frames, ignores stale REST, reconnects and 
   const timers = new Map<number, { callback: () => void; delay: number }>();
   let timerId = 0;
   Object.defineProperty(globalThis, 'window', { configurable: true, value: {
+    location: { origin: 'https://factory.example' },
     setTimeout: (callback: () => void, delay: number) => { timers.set(++timerId, { callback, delay }); return timerId; },
     clearTimeout: (id: number) => timers.delete(id),
   } });
@@ -48,7 +49,7 @@ test('live stream survives malformed frames, ignores stale REST, reconnects and 
   });
   cleanup = stop;
   const socket = FakeSocket.instances[0];
-  assert.ok(socket.url.endsWith('/ws/telemetry'));
+  assert.equal(socket.url, 'wss://factory.example/ws/telemetry');
   socket.onmessage?.({ data: 'bad json' });
   socket.onmessage?.({ data: JSON.stringify({ type: 'telemetry', ts: '2026-11-03T05:00:00Z', machines, kpis }) });
   deliverSnapshot(new Response(JSON.stringify([])));

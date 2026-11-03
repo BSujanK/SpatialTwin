@@ -4,11 +4,10 @@ import { jitterMachines, websocketUrl } from './data';
 import type { Kpis, Machine, StreamMessage } from './types';
 
 export const useMock = import.meta.env.VITE_USE_MOCK === 'true';
-const apiUrl = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '');
 export type ConnectionState = 'connecting' | 'live' | 'reconnecting' | 'mock';
 
 export async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const response = await fetch(`${apiUrl}${path}`, {
+  const response = await fetch(path, {
     ...options,
     headers: { 'Content-Type': 'application/json', ...options.headers },
     signal: options.signal ?? AbortSignal.timeout(8000),
@@ -50,7 +49,7 @@ export function subscribeTelemetry(handlers: {
   const connect = () => {
     if (stopped) return;
     handlers.connection(attempt ? 'reconnecting' : 'connecting');
-    socket = new WebSocket(websocketUrl(apiUrl));
+    socket = new WebSocket(websocketUrl(window.location.origin));
     const active = socket;
     const armWatchdog = () => {
       window.clearTimeout(watchdog);

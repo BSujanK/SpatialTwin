@@ -7,9 +7,9 @@ npm install
 npm run dev
 ```
 
-Open the local URL printed by Vite. By default the frontend connects to the backend at `http://localhost:8000`.
+Open the local URL printed by Vite. The browser uses relative `/api` URLs and a websocket on the frontend origin. Vite proxies both to `http://localhost:8000` (`ws: true`), including in preview mode, so HTTPS AR can use one origin.
 
-For the standalone mock demo, copy `.env.example` to `.env.local` before starting Vite. `VITE_USE_MOCK=true` loads the original fixtures from `../shared/mock/` and emits bounded sensor jitter every second. No backend or API key is needed. Set `VITE_USE_MOCK=false` (or remove the setting) for live mode; set `VITE_API_URL` to change the backend origin. Restart Vite after env changes. For deployment, set these variables before building.
+For the standalone mock demo, copy `.env.example` to `.env.local` before starting Vite. `VITE_USE_MOCK=true` loads the original fixtures from `../shared/mock/` and emits bounded sensor jitter every second. No backend or API key is needed. Set `VITE_USE_MOCK=false` (or remove the setting) for live mode; set `VITE_API_URL` to change Vite's backend proxy target. Restart Vite after env changes. For deployment, set the mock flag before building and configure the production web server to proxy `/api` and `/ws` to the backend.
 
 ```sh
 npm run build
