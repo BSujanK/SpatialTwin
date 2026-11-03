@@ -5,6 +5,19 @@ Read this top to bottom and do every unchecked item in order. Re-read this file
 
 ---
 
+## 2026-11-03 11:30: F3 merged (#12). Excellent. Next: F3b (camera focus), THEN B9
+Lead live walkthrough: select Coolant Pump → Start guided repair → step card, red safety box, Qualcomm reply, ⚡ badge, Tech A "repairing". All good.
+
+### F3b: make the repair visible in 3D (~15 min, before B9). Branch `claude2/F3b-focus`
+Problem: during a repair, the twin is small and the floating labels cover the machines, so the part highlight can't be seen.
+1. `focusMachine(id | null)` in scene.ts: smoothly (≈600 ms ease) move `controls.target` to the machine and bring the camera to about 4–5 m from it, keeping the current viewing angle. Call it when "Start guided repair" is pressed and when a step changes. `null` (and "Reset view") returns to the overview.
+2. While focused: hide the CSS2D labels of all other machines and show only the focused machine's label (compact).
+3. Make the highlight unmistakable: brighter emissive pulse (cyan #22d3ee) on the step's part, plus the bouncing arrow at least 0.6 m above the part.
+4. When the procedure finishes (`done:true`), flash the status ring green, then call `focusMachine(null)` after ~1.5 s.
+Do not move the demo controls / AR button (Lead placed them inside `.twin-panel`). `npm run build && npm test` must pass. Then B9.
+
+---
+
 ## 2026-11-03 11:25: B8 merged (#11). Keep going with F3, then B9 (small)
 Lead live test with the real key: 4/4 copilot calls right after an inject returned `source:"llm"`. 44 tests pass.
 **F3 stays your priority** (F6 is merged, so build on its helpers).

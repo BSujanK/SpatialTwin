@@ -27,7 +27,8 @@ _Last update: 10:05 IST_
 | F1 | Astra | ✅ merged | #8 |
 | F2 | Astra | ✅ merged (follow-ups in F6) | #8 |
 | F6 | Astra | ✅ merged | #10 |
-| F3 | **Claude-2** (reassigned) | after F6 merges | |
+| F3 | Claude-2 | ✅ merged | #12 |
+| F3b | Claude-2 | camera focus during repair | |
 | F4 | Astra | after F6 | |
 | F5 | Lead (builder) | ✅ merged | #9 |
 
