@@ -1,0 +1,7 @@
+{
+  "reply": "Let's start. Switch the isolator on the control panel to OFF and tag it out. Safety first: press START and confirm the pump stays still.",
+  "step": { "index": 0, "title": "Lock out the pump", "instruction": "Switch the isolator on the control panel to OFF and apply your lockout tag.", "part": "panel", "safety_warning": "Verify zero energy: press START and confirm the pump does not move." },
+  "total_steps": 5,
+  "done": false,
+  "source": "scripted"
+}

@@ -1,0 +1,46 @@
+[
+  {
+    "id": "CNC-01", "name": "CNC Mill", "type": "cnc",
+    "position": { "x": -4, "y": 0, "z": -2 },
+    "status": "ok", "health": 91, "criticality": 4,
+    "sensors": { "temperature_c": 41.2, "vibration_mm_s": 1.8, "pressure_bar": 6.1, "rpm": 8000 },
+    "fault": null
+  },
+  {
+    "id": "CONV-02", "name": "Main Conveyor", "type": "conveyor",
+    "position": { "x": 0, "y": 0, "z": -2 },
+    "status": "warning", "health": 64, "criticality": 5,
+    "sensors": { "temperature_c": 38.5, "vibration_mm_s": 4.9, "pressure_bar": 0.0, "rpm": 140 },
+    "fault": {
+      "code": "BELT-SLIP", "description": "Belt slipping: drive speed 12% below setpoint",
+      "part": "belt", "since": "2026-11-03T09:12:00+05:30"
+    }
+  },
+  {
+    "id": "PUMP-03", "name": "Coolant Pump", "type": "pump",
+    "position": { "x": 4, "y": 0, "z": -2 },
+    "status": "fault", "health": 22, "criticality": 3,
+    "sensors": { "temperature_c": 96.4, "vibration_mm_s": 11.3, "pressure_bar": 2.2, "rpm": 2950 },
+    "fault": {
+      "code": "BRG-OVERHEAT", "description": "Drive-end bearing overheating, vibration above ISO 10816 limit",
+      "part": "bearing", "since": "2026-11-03T09:05:00+05:30"
+    }
+  },
+  {
+    "id": "ROBOT-04", "name": "Welding Robot", "type": "robot_arm",
+    "position": { "x": -2, "y": 0, "z": 2 },
+    "status": "ok", "health": 88, "criticality": 4,
+    "sensors": { "temperature_c": 47.0, "vibration_mm_s": 2.1, "pressure_bar": 5.8, "rpm": 0 },
+    "fault": null
+  },
+  {
+    "id": "PRESS-05", "name": "Hydraulic Press", "type": "press",
+    "position": { "x": 2, "y": 0, "z": 2 },
+    "status": "fault", "health": 35, "criticality": 5,
+    "sensors": { "temperature_c": 62.7, "vibration_mm_s": 3.4, "pressure_bar": 141.0, "rpm": 0 },
+    "fault": {
+      "code": "HYD-LEAK", "description": "Hydraulic pressure dropping 4 bar/min: suspected line leak",
+      "part": "hydraulic_line", "since": "2026-11-03T09:15:00+05:30"
+    }
+  }
+]

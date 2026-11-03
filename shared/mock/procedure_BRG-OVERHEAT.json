@@ -1,0 +1,11 @@
+{
+  "fault_code": "BRG-OVERHEAT",
+  "title": "Replace drive-end bearing, Coolant Pump",
+  "steps": [
+    { "index": 0, "title": "Lock out the pump", "instruction": "Switch the isolator on the control panel to OFF and apply your lockout tag.", "part": "panel", "safety_warning": "Verify zero energy: press START and confirm the pump does not move." },
+    { "index": 1, "title": "Let it cool", "instruction": "Wait until the bearing housing reads below 50 °C on the overlay.", "part": "bearing", "safety_warning": "The housing can exceed 90 °C. Wear heat-resistant gloves." },
+    { "index": 2, "title": "Remove the coupling guard", "instruction": "Undo the four M8 bolts and lift the guard off the motor shaft.", "part": "motor", "safety_warning": null },
+    { "index": 3, "title": "Pull the old bearing", "instruction": "Fit the puller to the highlighted bearing and extract it evenly.", "part": "bearing", "safety_warning": null },
+    { "index": 4, "title": "Fit the new bearing and restart", "instruction": "Heat-mount the new 6308-2RS bearing, refit the guard to 25 Nm, remove the lockout and run for 2 minutes.", "part": "bearing", "safety_warning": "Keep hands clear of the coupling during the test run." }
+  ]
+}

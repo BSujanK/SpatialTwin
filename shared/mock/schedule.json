@@ -1,0 +1,12 @@
+{
+  "generated_at": "2026-11-03T09:20:00+05:30",
+  "method": "qubo-simulated-annealing",
+  "energy": -41.7,
+  "baseline_cost": 318.0,
+  "optimized_cost": 241.5,
+  "queue": [
+    { "rank": 1, "machine_id": "PRESS-05", "priority_score": 0.92, "reason": "Critical line machine (5/5) losing pressure fast; blocks downstream stamping.", "est_repair_min": 25, "technician": "Tech A" },
+    { "rank": 2, "machine_id": "PUMP-03", "priority_score": 0.81, "reason": "Lowest health (22) and bearing temperature rising toward seizure.", "est_repair_min": 35, "technician": "Tech B" },
+    { "rank": 3, "machine_id": "CONV-02", "priority_score": 0.58, "reason": "Warning only; belt slip reduces throughput but line still runs.", "est_repair_min": 15, "technician": "Tech A" }
+  ]
+}
