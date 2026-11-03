@@ -187,12 +187,30 @@ class Agent:
                 if name:
                     self._wo += 1
                     self.tech[name].update(machine_id=machine_id, wo=f"WO-{self._wo}")
+                else:
+                    name = self._reroute(machine_id)
             if name is None or self.tech[name]["status"] == "repairing":
                 return
             self.tech[name]["status"] = "repairing"
             m = self.sim.get(machine_id)
             self._emit("guide", machine_id,
                        f"{name} started the AR-guided repair of {m['name']} ({self.tech[name]['wo']}).")
+
+    def _reroute(self, machine_id: str) -> Optional[str]:
+        """No tech assigned and none idle: pull the tech holding the lowest-ranked job (not yet repairing)."""
+        rank = {q["machine_id"]: q["rank"] for q in self.schedule["queue"]}
+        cands = [(rank.get(t["machine_id"], 99), n) for n, t in self.tech.items()
+                 if t["machine_id"] and t["status"] == "en_route"]
+        if not cands:
+            return None
+        _, name = max(cands)
+        old = self.tech[name]["machine_id"]
+        self._wo += 1
+        self.tech[name].update(machine_id=machine_id, wo=f"WO-{self._wo}")
+        m = self.sim.get(machine_id)
+        self._emit("dispatch", machine_id,
+                   f"Re-routed {name} from {old} to {m['name']} ({machine_id}) with work order {self.tech[name]['wo']}.")
+        return name
 
     def on_resolve(self, machine_id: str) -> None:
         """Last copilot step done. Marks the machine ok if the caller has not already."""
