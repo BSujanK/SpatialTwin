@@ -4,6 +4,16 @@ Read this top to bottom. Re-read it (`git pull` first) after every PR you open. 
 
 ---
 
+## 13:12: F8 merged (#19). Excellent panel. NOW F9 (PR by 13:40)
+Branch `astra/F9-control-visuals` from the latest main. **Must-haves, in this order:**
+1. A machine with `control.mode == "mitigated"`: a **blue status ring** (#3b82f6, replacing red/amber) and a **"⚙ 70%" chip** on its label (use `setpoints.speed_pct`). `safe_stop`: a grey ring and a "⏸ STOPPED" chip. In mock mode PUMP-03 is mitigated, so you can see it straight away.
+2. Feed: ⚙️ for `mitigate`, ⏫ for `escalate`, ↩️ for `restore`, with mitigate events highlighted blue (like the Qualcomm purple).
+3. HUD tile **"Failures prevented"**: the big number is `kpis.failures_prevented`, with sub-text "+{ttf_extended_min} min time-to-failure gained". Fall back to 0 if the field is missing.
+4. (If time) Moving parts animate at `speed_pct` (spinning shaft / belt), so a mitigated machine visibly slows down.
+Don't touch the control panel's layout or the demo controls. `npm run build && npm test`, then print the PR URL.
+
+---
+
 ## ⏰ 2026-11-03 13:00: DEADLINE CHANGE. Phase 2 must be in the 14:15 presentation
 - **Open your PR(s) by 13:40.** Code freeze is at 14:00.
 - For speed you MAY combine your two tasks into ONE PR (`B10+B11` / `F8+F9`). Ship the core first, then polish:

@@ -39,8 +39,8 @@ _Last update: 10:05 IST_
 | L5 design + contract v1.3 + mocks | Lead | ✅ |
 | B10 control engine | Claude-2 | todo |
 | B11 loop integration | Claude-2 | todo (after B10) |
-| F8 control panel | Astra | todo |
-| F9 twin/HUD/feed visuals | Astra | todo (after F8) |
+| F8 control panel | Astra | ✅ merged #19 |
+| F9 twin/HUD/feed visuals | Astra | in progress (due 13:40) |
 
 ## Blockers / decisions
 - 12:26 **CODE FREEZE.** F7 (#16) and the README/ARCHITECTURE docs (#17) merged. All 17 PRs reviewed by the Lead. Phone AR verified on a real device via a Cloudflare tunnel. Backend 51 tests, frontend 20 tests, Qualcomm live.
