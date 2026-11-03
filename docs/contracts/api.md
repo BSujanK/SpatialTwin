@@ -109,6 +109,7 @@ interface CopilotResponse {
 | GET | `/api/kpis` | `Kpis` (v1.1) |
 | GET | `/api/schedule` | `Schedule` (latest) |
 | POST | `/api/schedule/recompute` | `Schedule` (runs the annealer now) |
+| GET | `/api/procedures` | `{ "fault_code": string, "title": string }[]` (all procedures; drives the Inject fault dropdown) |
 | GET | `/api/procedures/{fault_code}` | `{ "fault_code": string, "title": string, "steps": ProcedureStep[] }` |
 | POST | `/api/copilot` | body `CopilotRequest` → `CopilotResponse` |
 | POST | `/api/demo/reset` | `{ "ok": true }`. Restores the starting scenario (machines, events, KPIs, technicians) for a fresh demo run. Frontend: add a small "Reset demo" button next to Inject fault. |
