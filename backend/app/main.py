@@ -10,9 +10,18 @@ from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+from . import scheduler
 from .simulator import FAULTS, Simulator, now_iso
 
 sim = Simulator(speed=float(os.getenv("SIM_SPEED", "1")))
+
+
+schedule_state: dict = {"latest": scheduler.compute_schedule(sim.snapshot())}
+
+
+def recompute_schedule() -> dict:
+    schedule_state["latest"] = scheduler.compute_schedule(sim.snapshot())
+    return schedule_state["latest"]
 
 
 def compute_kpis() -> dict:
@@ -55,7 +64,8 @@ def telemetry_message() -> dict:
 async def _loop() -> None:
     while True:
         await asyncio.sleep(1.0)
-        sim.tick(1.0)
+        if sim.tick(1.0):  # any status change -> re-optimise
+            recompute_schedule()
         await hub.broadcast(telemetry_message())
 
 
@@ -100,8 +110,19 @@ async def inject_fault(req: InjectRequest):
     if req.code not in FAULTS:
         raise HTTPException(400, f"unknown fault code {req.code}; use one of {sorted(FAULTS)}")
     m = sim.inject_fault(req.machine_id, req.code)
+    recompute_schedule()
     await hub.broadcast(telemetry_message())
     return m
+
+
+@app.get("/api/schedule")
+def get_schedule():
+    return schedule_state["latest"]
+
+
+@app.post("/api/schedule/recompute")
+def post_schedule_recompute():
+    return recompute_schedule()
 
 
 @app.websocket("/ws/telemetry")
