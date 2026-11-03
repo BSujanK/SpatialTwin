@@ -40,7 +40,7 @@ export class FactoryScene {
     this.scene.background = new THREE.Color(0x111c27);
     this.scene.fog = new THREE.Fog(0x111c27, 25, 55);
     this.scene.add(this.twin);
-    this.camera.position.set(13, 14, 18);
+    this.camera.position.set(9, 9.5, 12.5);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -209,7 +209,7 @@ export class FactoryScene {
   }
 
   resetView() {
-    this.camera.position.set(13, 14, 18);
+    this.camera.position.set(9, 9.5, 12.5);
     this.controls.target.set(0, 0.4, 0);
   }
 

@@ -59,7 +59,7 @@ if (factory) { // F5
   const ar = setupAR({ renderer: factory.renderer, scene: factory.scene, camera: factory.camera, root: factory.twin, overlay: el('app'), controls: factory.controls }); // F5
   factory.onXRFrame = ar.onXRFrame; // F5
 } // F5
-mountDemoControls(el('app')); // F5
+mountDemoControls(document.querySelector<HTMLElement>('.twin-panel') ?? el('app')); // F5 (inside the twin panel)
 
 function renderDetails() {
   for (const [id, row] of rows) row.setAttribute('aria-pressed', String(id === selectedId));

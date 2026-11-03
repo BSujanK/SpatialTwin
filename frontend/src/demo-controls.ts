@@ -6,7 +6,7 @@ const MACHINES = ['CNC-01', 'CONV-02', 'PUMP-03', 'ROBOT-04', 'PRESS-05'];
 const FALLBACK_CODES = ['BRG-OVERHEAT', 'BELT-SLIP', 'HYD-LEAK', 'SPINDLE-VIB', 'JOINT-STALL'];
 
 const styles = `
-.demo-controls{position:fixed;left:14px;bottom:14px;z-index:40;display:grid;grid-template-columns:1fr 1fr;gap:6px;width:min(300px,calc(100vw - 28px));padding:10px;border:1px solid rgba(148,163,184,.22);border-radius:10px;background:rgba(10,18,26,.92);color:#cbd5e1;font:500 11px/1.3 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.demo-controls{position:absolute;left:28px;top:112px;z-index:40;display:grid;grid-template-columns:1fr 1fr;gap:6px;width:min(300px,calc(100vw - 28px));padding:10px;border:1px solid rgba(148,163,184,.22);border-radius:10px;background:rgba(10,18,26,.92);color:#cbd5e1;font:500 11px/1.3 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
 .demo-controls .demo-title{grid-column:1/-1;color:#2dd4bf;letter-spacing:.14em;font-size:10px}
 .demo-controls select,.demo-controls button{min-width:0;padding:7px 8px;border:1px solid rgba(148,163,184,.3);border-radius:6px;background:#0f1b27;color:inherit;font:inherit}
 .demo-controls button{cursor:pointer}
