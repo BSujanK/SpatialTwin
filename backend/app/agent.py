@@ -95,7 +95,8 @@ class Agent:
         """Ask the LLM for a one-sentence root cause in the background; never blocks the loop."""
         if not llm.available():
             return
-        threading.Thread(target=self._root_cause, args=(m, self._gen), daemon=True).start()
+        gen = self._gen
+        llm.worker.submit(lambda: self._root_cause(m, gen))  # single background worker, newest first
 
     def _root_cause(self, m: dict, gen: int) -> None:
         f, s = m["fault"], m["sensors"]
@@ -106,7 +107,7 @@ class Agent:
                 f"{s['vibration_mm_s']} mm/s, pressure {s['pressure_bar']} bar, {s['rpm']} rpm. "
                 f"Predicted failure in {m['predicted_failure_min']} min.")
         try:
-            res = llm.chat(system, [{"role": "user", "content": user}], max_tokens=80)
+            res = llm.chat(system, [{"role": "user", "content": user}], max_tokens=80, background=True)
         except Exception:
             return
         if not res or gen != self._gen:  # failure: emit nothing; stale after a demo reset: drop

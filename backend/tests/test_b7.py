@@ -93,12 +93,18 @@ def test_error_falls_through_to_anthropic_then_scripted(monkeypatch):
     g_sim.reset(); g_agent.reset()
 
 
-def test_cooldown_skips_failed_provider(monkeypatch):
+def test_cooldown_only_for_connection_errors(monkeypatch):
     enable(monkeypatch)
-    mock(status=500)
-    llm.chat("s", [{"role": "user", "content": "q"}])
+
+    def boom(req):
+        calls.append(req)
+        raise httpx.ConnectError("down")
+
+    calls.clear()
+    llm.set_transport(httpx.MockTransport(boom))
+    assert llm.chat("s", [{"role": "user", "content": "q"}]) is None
     n = len(calls)
-    llm.chat("s", [{"role": "user", "content": "q"}])
+    assert llm.chat("s", [{"role": "user", "content": "q"}]) is None
     assert len(calls) == n  # provider in cooldown, not called again
 
 
