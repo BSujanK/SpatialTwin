@@ -6,6 +6,7 @@ import { getHealth } from './copilot-api'; // F3
 import { aiChipText } from './copilot-logic'; // F3
 import { ImpactView } from './impact';
 import { SchedulePanel } from './schedule';
+import { ControlPanel } from './control-panel';
 import type { Machine } from './types';
 import { setupAR } from './xr'; // F5
 import { mountDemoControls } from './demo-controls'; // F5
@@ -25,7 +26,9 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     </section>
     <section id="agent-feed" class="agent-feed" aria-label="Agent activity"></section>
     <aside class="sidebar" aria-label="Machine telemetry">
-      <section id="schedule-panel" class="schedule-panel" aria-label="Optimized repair schedule"></section>
+      <div class="sidebar-tabs" role="tablist" aria-label="Operations panels"><button id="repair-tab" type="button" role="tab" aria-controls="schedule-panel" aria-selected="true">Repair priorities</button><button id="control-tab" type="button" role="tab" aria-controls="control-panel" aria-selected="false" tabindex="-1">Autonomous control</button></div>
+      <section id="schedule-panel" class="schedule-panel" role="tabpanel" aria-labelledby="repair-tab"></section>
+      <section id="control-panel" class="control-panel" role="tabpanel" aria-labelledby="control-tab" hidden></section>
       <div class="panel-heading"><span class="eyebrow">PRODUCTION LINE</span><span id="asset-count" class="count">0 ASSETS</span></div>
       <div id="machine-list" class="machine-list"></div>
       <section class="details" aria-label="Selected machine">
@@ -49,6 +52,25 @@ let factory: FactoryScene | undefined;
 const rows = new Map<string, HTMLButtonElement>();
 const impact = new ImpactView(el('impact-hud'), el('agent-feed'), selectMachine);
 const schedulePanel = new SchedulePanel(el('schedule-panel'), selectMachine, schedule => factory?.setRankBadges(schedule.queue));
+const controlPanel = new ControlPanel(el('control-panel'), selectMachine);
+const tabLifetime = new AbortController();
+const tabs = [el<HTMLButtonElement>('repair-tab'), el<HTMLButtonElement>('control-tab')];
+const activateTab = (index: number) => {
+  tabs.forEach((tab, position) => { tab.setAttribute('aria-selected', String(index === position)); tab.tabIndex = index === position ? 0 : -1; });
+  el('schedule-panel').hidden = index !== 0;
+  el('control-panel').hidden = index !== 1;
+  if (index === 1) void controlPanel.refresh();
+};
+tabs.forEach((tab, index) => {
+  tab.addEventListener('click', () => activateTab(index), { signal: tabLifetime.signal });
+  tab.addEventListener('keydown', event => {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+    event.preventDefault();
+    const next = event.key === 'Home' ? 0 : event.key === 'End' ? 1 : 1 - index;
+    activateTab(next);
+    tabs[next].focus();
+  }, { signal: tabLifetime.signal });
+});
 const copilot = new CopilotPanel(el('copilot-panel'), highlightPart, { focus: focusMachine, flash: flashMachine }); // F3, F3b
 
 // F3: "AI: <provider>" chip in the HUD, from GET /api/health.
@@ -124,6 +146,7 @@ el('reset-view').addEventListener('click', () => factory?.resetView());
 el('data-description').textContent = useMock ? 'MOCK / 1 SECOND TICK' : 'LIVE API / WEBSOCKET';
 const unsubscribe = subscribeTelemetry({
   connection(state) {
+    controlPanel.connection(state);
     impact.connection(state);
     const labels = { connecting: 'Connecting…', live: 'Telemetry connected', reconnecting: 'Disconnected · retrying', mock: 'Mock demo' };
     el('connection').textContent = labels[state];
@@ -132,12 +155,14 @@ const unsubscribe = subscribeTelemetry({
       el('empty-state').textContent = 'Backend unavailable. Retrying automatically… Start the backend or enable VITE_USE_MOCK=true.';
     }
   },
-  kpis: kpis => impact.updateKpis(kpis),
+  kpis: kpis => { impact.updateKpis(kpis); controlPanel.setKpis(kpis); },
+  control: action => controlPanel.updateAction(action),
   events: events => impact.updateEvents(events),
   schedule: schedule => schedulePanel.setSchedule(schedule),
   impactError: message => impact.error(message),
   machines(next, ts) {
     machines = next;
+    controlPanel.setMachines(next);
     schedulePanel.setMachines(next);
     if (factory) el('empty-state').hidden = machines.length > 0;
     el('asset-count').textContent = `${machines.length} ASSETS`;
@@ -170,6 +195,6 @@ const unsubscribe = subscribeTelemetry({
   },
 });
 
-const dispose = () => { window.clearInterval(aiTimer); unsubscribe(); impact.dispose(); schedulePanel.dispose(); factory?.dispose(); window.removeEventListener('pagehide', dispose); };
+const dispose = () => { window.clearInterval(aiTimer); unsubscribe(); impact.dispose(); schedulePanel.dispose(); controlPanel.dispose(); tabLifetime.abort(); factory?.dispose(); window.removeEventListener('pagehide', dispose); };
 if (import.meta.hot) import.meta.hot.dispose(dispose);
 window.addEventListener('pagehide', dispose, { once: true });

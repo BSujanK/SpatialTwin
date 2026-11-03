@@ -1,7 +1,7 @@
 import type { AgentEvent, Kpis } from './types';
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
-const icons: Record<AgentEvent['kind'], string> = { detect: '🔍', diagnose: '🧠', schedule: '⚛️', dispatch: '🚚', guide: '🛠️', resolve: '✅' };
+const icons: Partial<Record<AgentEvent['kind'], string>> = { detect: '🔍', diagnose: '🧠', schedule: '⚛️', dispatch: '🚚', guide: '🛠️', resolve: '✅' };
 
 export class ImpactView {
   private rows = new Map<number, HTMLLIElement>();

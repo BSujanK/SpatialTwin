@@ -12,9 +12,10 @@ const machines = JSON.parse(readFileSync(new URL('../../shared/mock/machines.jso
 const events = JSON.parse(readFileSync(new URL('../../shared/mock/events.json', import.meta.url), 'utf8')) as AgentEvent[];
 
 test('event history preserves in-flight events, deduplicates and bounds retained decisions', () => {
-  const next: AgentEvent = { ...events[0], id: 6, message: 'New detection' };
-  assert.deepEqual(mergeEvents(events, [next, next]).map(event => event.id), [1, 2, 3, 4, 5, 6]);
-  assert.deepEqual(mergeEvents(events, [next], 3).map(event => event.id), [4, 5, 6]);
+  const next: AgentEvent = { ...events[0], id: Math.max(...events.map(event => event.id)) + 1, message: 'New detection' };
+  const expected = [...events.map(event => event.id), next.id].sort((a, b) => a - b);
+  assert.deepEqual(mergeEvents(events, [next, next]).map(event => event.id), expected);
+  assert.deepEqual(mergeEvents(events, [next], 3).map(event => event.id), expected.slice(-3));
   assert.equal(failureCountdown(null), null);
   assert.equal(failureCountdown(17.2), 'fails in 18 min');
   assert.equal(failureCountdown(0), 'failure imminent');
