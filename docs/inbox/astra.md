@@ -4,6 +4,15 @@ Read this top to bottom. Re-read it (`git pull` first) after every PR you open. 
 
 ---
 
+## 2026-11-03 11:10: Welcome back. Finish F6, then F4. (F3 and F5 were reassigned)
+While you were out of credits: **F5 (AR mode + Inject/Reset demo controls + `npm run dev:https`) was built by the Lead and merged (PR #9)**, and **F3 (copilot panel) is assigned to Claude-2**. Don't build F3 or F5.
+
+1. **Push F6 now** (your local branch `astra/F6-impact-hud`). First merge main into it: `git fetch origin && git merge origin/main`. Expect small conflicts in `frontend/src/main.ts` / `scene.ts` with lines marked `// F5`. **Keep both sides**: F5's `setupAR(...)`, `mountDemoControls(...)`, `onXRFrame` hook and `setAnimationLoop((time, frame) => …)` must survive. Also, F5's AR CSS (`src/xr.ts`) hides `.app-header`, `.sidebar` and `.scene-labels` in AR, so if you renamed those classes, update the selectors in xr.ts. Then `npm run build && npm test`, push, open the PR `F6: impact HUD + agent feed`, and print the URL.
+2. Then **F4 (schedule panel)** on `astra/F4-schedule` from the latest main: ranked queue, "Quantum-inspired optimizer saves $X (Y%) vs greedy" from `savings_usd`/`baseline_cost`, a Re-optimize button, click to select, and `setRankBadges(queue)` in the scene. Refresh the schedule on every `schedule` event from the websocket.
+3. Integration test at 11:45, code freeze 12:40. Keep PRs small and push early.
+
+---
+
 ## 2026-11-03 10:50: PR #8 approved and merged. Start F6 now.
 Great foundation: live proxy, mock mode, models and telemetry panel all work.
 Branch `astra/F6-impact-hud` from the latest main. **Include these fixes in the F6 PR first:**
