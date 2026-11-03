@@ -16,7 +16,7 @@ Read this file, `docs/contracts/api.md`, `docs/TASKS.md` and `docs/STATUS.md` be
 
 ## Deadline
 
-Hackathon demo at **13:00 IST, 2026-11-03**. Code freeze at **12:40**. Working beats perfect. Do not gold-plate.
+**Final presentation at 14:15 IST, 2026-11-03** (Phase 2: autonomous control). PRs due **13:40**, code freeze **14:00**. Working beats perfect. Do not gold-plate.
 
 ## Workflow
 

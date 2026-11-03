@@ -5,6 +5,14 @@ Read this top to bottom and do every unchecked item in order. Re-read this file
 
 ---
 
+## ⏰ 2026-11-03 13:00: DEADLINE CHANGE. Phase 2 must be in the 14:15 presentation
+- **Open your PR(s) by 13:40.** Code freeze is at 14:00.
+- For speed you MAY combine your two tasks into ONE PR (`B10+B11` / `F8+F9`). Ship the core first, then polish:
+  - Must have: catalogue, decision rule, envelope, SimulatedAdapter, mitigate after diagnose in **auto** and **approve** modes, `/api/control/*`, KPIs, `control` ws messages, restore on resolve, and tests for the envelope and the LLM-never-sets-numbers rule.
+  - Nice to have (only if time): watchdog escalation, OpcUaAdapter stub, Qualcomm rationale. **Do the rationale if at all possible**, because it's the Qualcomm story.
+
+---
+
 ## 2026-11-03 (after the demo): Phase 2, Autonomous control. Do B10 then B11
 Judges' feedback: insights stop at the human. Now they must also drive the **control system** directly, adjusting the machine before it fails.
 1. `git switch main && git pull`. Read **`docs/design/2026-11-03-autonomous-control-design.md`** (the full deep dive), the "Autonomous control (v1.3)" section of `docs/contracts/api.md`, and rows B10/B11 in `docs/TASKS.md`.

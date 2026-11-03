@@ -4,6 +4,14 @@ Read this top to bottom. Re-read it (`git pull` first) after every PR you open. 
 
 ---
 
+## ⏰ 2026-11-03 13:00: DEADLINE CHANGE. Phase 2 must be in the 14:15 presentation
+- **Open your PR(s) by 13:40.** Code freeze is at 14:00.
+- For speed you MAY combine your two tasks into ONE PR (`B10+B11` / `F8+F9`). Ship the core first, then polish:
+  - Must have: the control panel with the Advise/Approve/Auto switch, action cards with Approve/Reject/Revert, the TTF "18 → 61 min" bar and the $ trade-off; a blue ring + "⚙ 70%" chip on mitigated machines; ⚙️ mitigate feed icon.
+  - Nice to have (only if time): speed-proportional animation, HUD "Failures prevented" tile, safe_stop look, escalate/restore icons.
+
+---
+
 ## 2026-11-03 (after the demo): Phase 2, Autonomous control. Do F8 then F9
 Judges' feedback: insights stop at the human. Now the agent also adjusts the machine's operation automatically before failure, and the dashboard must make that visible and controllable.
 1. `git switch main && git pull`. Read **`docs/design/2026-11-03-autonomous-control-design.md`** (§4 UI, §5 demo), the "Autonomous control (v1.3)" section of `docs/contracts/api.md`, rows F8/F9 in `docs/TASKS.md`, and the new mocks `shared/mock/control_actions.json`, `control_policy.json` (machines.json now has `control`).
