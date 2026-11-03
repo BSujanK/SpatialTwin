@@ -1,0 +1,6 @@
+{
+  "autonomy": "approve",
+  "enabled": true,
+  "max_derate_pct": 40,
+  "allow_controlled_stop": true
+}

@@ -1,4 +1,4 @@
-# API contract (v1.2): backend ⇄ frontend
+# API contract (v1.3): backend ⇄ frontend
 
 The backend is FastAPI on `http://localhost:8000`. CORS allows all origins. All JSON uses snake_case.
 Example payloads live in `shared/mock/` and must stay valid against this document.
@@ -141,3 +141,58 @@ The AI brain runs on **Qualcomm Cloud AI 100** through the Qualcomm AI Inference
 - Used in two places:
   1. **Copilot replies** (`/api/copilot`). Step logic stays in code.
   2. **AI root-cause analysis** in the agent loop. After each `diagnose` event, a background call (it never blocks the loop) asks the LLM for a one-sentence likely root cause and recommended action from the live sensors. It's emitted as an extra `diagnose` event with the message prefix `"Qualcomm Cloud AI 100: "`. On failure nothing is emitted.
+
+## Autonomous control (v1.3): closed-loop mitigation
+
+Design and rationale: `docs/design/2026-11-03-autonomous-control-design.md`. All additions are additive.
+
+```ts
+interface Setpoints { speed_pct: number; load_pct: number; coolant_pct: number }  // % of nominal (nominal = 100/100/50)
+
+// Added to Machine:
+//   control: { mode: "nominal" | "mitigated" | "safe_stop"; setpoints: Setpoints; action_id: string | null }
+
+type ControlKind = "derate_speed" | "reduce_load" | "boost_cooling" | "reduce_pressure"
+                 | "limit_velocity" | "controlled_stop" | "restore_nominal";
+
+interface ControlAction {
+  id: string;                         // "CA-1001"
+  machine_id: string;
+  created_at: string;                 // ISO-8601
+  kinds: ControlKind[];               // e.g. ["derate_speed", "boost_cooling"]
+  label: string;                      // "Derate pump to 70% + coolant 100%"
+  setpoints: Setpoints;               // target
+  previous_setpoints: Setpoints;      // for revert
+  status: "proposed" | "active" | "rejected" | "reverted" | "completed" | "escalated";
+  autonomy: "advise" | "approve" | "auto";  // the level when it was created
+  reason: string;                     // deterministic, always present
+  rationale: string | null;           // Qualcomm Cloud AI 100 explanation (async, may stay null)
+  rationale_engine: string | null;    // e.g. "Qualcomm Cloud AI 100 · Llama-3.3-70B"
+  ttf_before_min: number | null;
+  ttf_after_min: number | null;
+  throughput_cost_usd_per_hour: number;
+  expected_loss_avoided_usd: number;
+}
+
+interface ControlPolicy {
+  autonomy: "advise" | "approve" | "auto";  // default "approve"
+  enabled: boolean;                          // default true
+  max_derate_pct: number;                    // default 40 (speed/load never below 60 except controlled_stop)
+  allow_controlled_stop: boolean;            // default true
+}
+```
+
+Kpis gains: `mitigations_active: number`, `failures_prevented: number`, `ttf_extended_min: number`, `throughput_cost_usd_per_hour: number`.
+AgentEvent.kind gains: `"mitigate" | "escalate" | "restore"`.
+Websocket gains a message type, sent on every action create or change: `{ "type": "control", "action": ControlAction }`.
+
+| Method | Path | Returns |
+|---|---|---|
+| GET | `/api/control/actions?limit=50` | `ControlAction[]`, newest last |
+| POST | `/api/control/actions/{id}/approve` | `ControlAction` (proposed → active; 409 otherwise) |
+| POST | `/api/control/actions/{id}/reject` | `ControlAction` (proposed → rejected) |
+| POST | `/api/control/actions/{id}/revert` | `ControlAction` (active → reverted; restores previous_setpoints) |
+| GET | `/api/control/policy` | `ControlPolicy` |
+| PUT | `/api/control/policy` | body: partial `ControlPolicy` → full `ControlPolicy` |
+
+Rules (enforced in the backend, tested): the LLM never sets setpoints; setpoints stay within the envelope; no new action while the machine's technician is `repairing`; at most one new action per machine per 60 s; a watchdog escalates after 30 s with no improvement; resolve emits `restore` and returns the machine to nominal.

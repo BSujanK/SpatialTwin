@@ -15,5 +15,9 @@
       "status": "idle",
       "machine_id": null
     }
-  ]
+  ],
+  "mitigations_active": 1,
+  "failures_prevented": 1,
+  "ttf_extended_min": 43,
+  "throughput_cost_usd_per_hour": 900
 }

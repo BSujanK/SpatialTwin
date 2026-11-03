@@ -4,6 +4,15 @@ Read this top to bottom. Re-read it (`git pull` first) after every PR you open. 
 
 ---
 
+## 2026-11-03 (after the demo): Phase 2, Autonomous control. Do F8 then F9
+Judges' feedback: insights stop at the human. Now the agent also adjusts the machine's operation automatically before failure, and the dashboard must make that visible and controllable.
+1. `git switch main && git pull`. Read **`docs/design/2026-11-03-autonomous-control-design.md`** (§4 UI, §5 demo), the "Autonomous control (v1.3)" section of `docs/contracts/api.md`, rows F8/F9 in `docs/TASKS.md`, and the new mocks `shared/mock/control_actions.json`, `control_policy.json` (machines.json now has `control`).
+2. **F8** (autonomous-control panel with the Advise/Approve/Auto switch and action cards) → PR `astra/F8-control-panel`. Build against mocks first.
+3. **F9** (blue ring + ⚙ chip, speed-proportional animation, controlled-stop look, HUD tile, feed icons) → PR `astra/F9-control-visuals`.
+Keep the demo controls / AR button inside `.twin-panel`. `npm run build && npm test` before each PR.
+
+---
+
 ## 2026-11-03 11:40: F4 merged (#13). Great work. Last task: F7 polish (small, ≤15 min)
 Lead visual check: the queue, the savings line and the badges all look right, and the queue re-ranks live after an inject.
 Branch `astra/F7-polish` from the latest main, one PR by **12:35** (hard stop; code freeze 12:40). Only `frontend/src/style.css` and `impact.ts`/`schedule*.ts` (Claude-2 is editing `scene.ts` for F3b, so don't touch it).

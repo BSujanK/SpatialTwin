@@ -33,6 +33,15 @@ _Last update: 10:05 IST_
 | F7 | Astra | ✅ merged | #16 |
 | F5 | Lead (builder) | ✅ merged | #9 |
 
+## Phase 2: Autonomous control (after the demo)
+| Task | Owner | State |
+|---|---|---|
+| L5 design + contract v1.3 + mocks | Lead | ✅ |
+| B10 control engine | Claude-2 | todo |
+| B11 loop integration | Claude-2 | todo (after B10) |
+| F8 control panel | Astra | todo |
+| F9 twin/HUD/feed visuals | Astra | todo (after F8) |
+
 ## Blockers / decisions
 - 12:26 **CODE FREEZE.** F7 (#16) and the README/ARCHITECTURE docs (#17) merged. All 17 PRs reviewed by the Lead. Phone AR verified on a real device via a Cloudflare tunnel. Backend 51 tests, frontend 20 tests, Qualcomm live.
 - 12:07 F3b + B9 merged and verified live (camera focus + cyan part highlight; injected sensors now match the fault; Qualcomm reads 10.5 mm/s correctly). Only F7 (polish) is still open. Freeze at 12:40.

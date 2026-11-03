@@ -14,6 +14,13 @@
     "message": "Diagnosis: BRG-OVERHEAT. Predicted seizure in ~18 min."
   },
   {
+    "id": 21,
+    "ts": "2026-11-03T09:05:04+05:30",
+    "kind": "mitigate",
+    "machine_id": "PUMP-03",
+    "message": "Auto-mitigation CA-1001: Derate pump to 70% + coolant 100%. Fails in 18 \u2192 61 min, avoids $10,450 expected loss."
+  },
+  {
     "id": 3,
     "ts": "2026-11-03T09:15:01+05:30",
     "kind": "detect",
